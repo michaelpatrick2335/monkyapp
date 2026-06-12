@@ -40,6 +40,9 @@ async function buildAll() {
   console.log("copying landing page...");
   await copyFile("client/index.html", "dist/public/index.html");
 
+  // Rename app/app.html -> app/index.html so Vercel serves it at /app
+  await copyFile("dist/public/app/app.html", "dist/public/app/index.html");
+
   console.log("building server...");
   const pkg = JSON.parse(await readFile("package.json", "utf-8"));
   const allDeps = [
