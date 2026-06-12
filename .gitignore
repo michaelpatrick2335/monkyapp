@@ -1,0 +1,1 @@
+node_modules/\n.env\ndist/\nclient/public/audio/*.mp3\nbuiltin-tracks/\n*.mp3
