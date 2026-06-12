@@ -11,10 +11,18 @@ export function serveStatic(app: Express) {
     );
   }
 
+  // Serve all static files (landing page assets, app assets, audio)
   app.use(express.static(distPath));
 
-  // fall through to index.html if the file doesn't exist
+  // /app/* — serve the React SPA (app.html)
+  app.use("/app", express.static(path.join(distPath, "app")));
+  app.use("/app/{*path}", (_req, res) => {
+    res.sendFile(path.resolve(distPath, "app", "app.html"));
+  });
+
+  // Root / — serve the landing page (index.html)
   app.use("/{*path}", (_req, res) => {
+    // Don't catch API routes
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
