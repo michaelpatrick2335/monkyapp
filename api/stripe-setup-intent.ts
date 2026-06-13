@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { cors } from "../_lib";
+import { cors } from "./_lib";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   cors(res);
@@ -13,18 +13,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(stripeKey, { apiVersion: "2024-06-20" as any });
     const { email } = req.body as { email: string };
-    const origin = (req.headers.origin as string) || "https://www.monkyapp.com";
-
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      payment_method_types: ["card"],
-      customer_email: email || undefined,
-      line_items: [{ price_data: { currency: "usd", product_data: { name: "MONKy Full Access", description: "Unlimited meditations, all 1000 levels" }, unit_amount: 499, recurring: { interval: "month" } }, quantity: 1 }],
-      subscription_data: { trial_period_days: 3 },
-      success_url: `${origin}/app/#/?stripe=success`,
-      cancel_url: `${origin}/app/#/`,
+    let customerId: string | undefined;
+    if (email) {
+      const existing = await stripe.customers.list({ email, limit: 1 });
+      customerId = existing.data.length > 0
+        ? existing.data[0].id
+        : (await stripe.customers.create({ email })).id;
+    }
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customerId, payment_method_types: ["card"], usage: "off_session",
     });
-    return res.json({ url: session.url });
+    return res.json({ clientSecret: setupIntent.client_secret, customerId });
   } catch (e: any) {
     return res.status(500).json({ error: e.message });
   }

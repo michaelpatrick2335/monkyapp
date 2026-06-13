@@ -33,7 +33,7 @@ function CardForm({ email, onSuccess, onError }: { email: string; onSuccess: () 
 
     try {
       // 1. Get SetupIntent clientSecret from server
-      const siRes = await fetch(`${API_BASE}/api/stripe/setup-intent`, {
+      const siRes = await fetch(`${API_BASE}/api/stripe-setup-intent`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -71,7 +71,7 @@ function CardForm({ email, onSuccess, onError }: { email: string; onSuccess: () 
       }
 
       // 3. Create subscription on server with saved payment method
-      const subRes = await fetch(`${API_BASE}/api/stripe/confirm-subscription`, {
+      const subRes = await fetch(`${API_BASE}/api/stripe-confirm-subscription`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

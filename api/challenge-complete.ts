@@ -1,0 +1,21 @@
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { makePool, ensureTables, rowToUser, getOrCreateUser, updateUser, getEmail, cors } from "./_lib";
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  cors(res);
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  const pool = makePool();
+  try {
+    await ensureTables(pool);
+    const { bananas } = req.body as { bananas: number };
+    const email = getEmail(req.headers as any);
+    const userRow = await getOrCreateUser(pool, email);
+    const user = rowToUser(userRow);
+    const bonus = Math.min(Math.max(bananas, 1), 10);
+    const updated = await updateUser(pool, user.id, { bananas: user.bananas + bonus });
+    return res.json({ user: rowToUser(updated), bonusBananas: bonus });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message });
+  } finally { await pool.end(); }
+}

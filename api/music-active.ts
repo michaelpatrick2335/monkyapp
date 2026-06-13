@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { makePool, ensureTables, rowToUser, getOrCreateUser, updateUser, getEmail, cors } from "../_lib";
+import { makePool, ensureTables, rowToUser, getOrCreateUser, updateUser, getEmail, cors } from "./_lib";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   cors(res);
@@ -8,13 +8,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const pool = makePool();
   try {
     await ensureTables(pool);
-    const { bananas } = req.body as { bananas: number };
     const email = getEmail(req.headers as any);
     const userRow = await getOrCreateUser(pool, email);
-    const user = rowToUser(userRow);
-    const bonus = Math.min(Math.max(bananas, 1), 10);
-    const updated = await updateUser(pool, user.id, { bananas: user.bananas + bonus });
-    return res.json({ user: rowToUser(updated), bonusBananas: bonus });
+    const updated = await updateUser(pool, userRow.id, { activeMusicTrack: req.body?.id ?? null });
+    return res.json(rowToUser(updated));
   } catch (e: any) {
     return res.status(500).json({ error: e.message });
   } finally { await pool.end(); }

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { makePool, ensureTables, rowToUser, getOrCreateUser, updateUser, getEmail, cors } from "../_lib";
+import { makePool, ensureTables, rowToUser, getOrCreateUser, updateUser, getEmail, cors } from "./_lib";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   cors(res);
@@ -13,7 +13,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const userRow = await getOrCreateUser(pool, email);
     const user = rowToUser(userRow);
 
-    // Create session record
     const sessionRes = await pool.query(
       `INSERT INTO meditation_sessions (user_id, level, tier, duration_seconds, completed_at, bananas_earned)
        VALUES ($1, $2, $3, $4, $5, 1) RETURNING *`,
@@ -24,7 +23,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const today = new Date().toISOString().split("T")[0];
     const wasYesterday = user.lastSessionDate === new Date(Date.now() - 86400000).toISOString().split("T")[0];
     const isToday = user.lastSessionDate === today;
-
     const newBananas = user.bananas + 1;
     const newLevel = Math.min(user.level + 1, 1000);
     const newStreak = isToday ? user.streakDays : wasYesterday ? user.streakDays + 1 : 1;
@@ -39,7 +37,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       totalSecondsMediated: user.totalSecondsMediated + durationSeconds,
       streakDays: newStreak, lastSessionDate: today, tier: newTier, freeSessionsUsed: newFreeUsed,
     });
-
     return res.json({ session, user: rowToUser(updatedRow), leveledUp: newLevel !== user.level, newLevel });
   } catch (e: any) {
     return res.status(500).json({ error: e.message });

@@ -57,7 +57,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
 
   const completeMutation = useMutation({
     mutationFn: async (durationSeconds: number) =>
-      apiRequest("POST", "/api/session/complete", { durationSeconds }).then(r => r.json()),
+      apiRequest("POST", "/api/session-complete", { durationSeconds }).then(r => r.json()),
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       setMeditating(false);
@@ -87,7 +87,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
 
   const challengeCompleteMutation = useMutation({
     mutationFn: async (bananas: number) =>
-      apiRequest("POST", "/api/challenge/complete", { bananas }).then(r => r.json()),
+      apiRequest("POST", "/api/challenge-complete", { bananas }).then(r => r.json()),
     onSuccess: (data: any, bananas: number) => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       setActiveChallenge(null);
@@ -134,7 +134,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
     setPreviewingTrackId(null);
   }
   async function setActiveTrack(id: string) {
-    await apiRequest("POST", "/api/music/active", { id });
+    await apiRequest("POST", "/api/music-active", { id });
     queryClient.invalidateQueries({ queryKey: ["/api/user"] });
   }
 
@@ -230,7 +230,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
           initialTrackId={user.activeMusicTrack}
           onClose={() => setShowMusicPicker(false)}
           onConfirm={async (trackId) => {
-            await apiRequest("POST", "/api/music/active", { id: trackId });
+            await apiRequest("POST", "/api/music-active", { id: trackId });
             await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
             setShowMusicPicker(false);
             setShowMustRead(true);
