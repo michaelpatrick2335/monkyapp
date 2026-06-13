@@ -14,9 +14,17 @@
     "api/health.ts": {
       "runtime": "nodejs20.x",
       "maxDuration": 10
+    },
+    "api/login2.ts": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 30
     }
   },
   "rewrites": [
+    {
+      "source": "/api/login2",
+      "destination": "/api/login2"
+    },
     {
       "source": "/api/login",
       "destination": "/api/handler"
