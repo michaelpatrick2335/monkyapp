@@ -35,9 +35,39 @@ export function saveCustomExercise(ex: Omit<CustomBreathExercise, "id" | "create
   return newEx;
 }
 
+export function updateCustomExercise(id: string, updates: Partial<Omit<CustomBreathExercise, "id" | "createdAt">>): void {
+  const exercises = loadCustomExercises().map(e => e.id === id ? { ...e, ...updates } : e);
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(exercises)); } catch {}
+}
+
 export function deleteCustomExercise(id: string) {
   const exercises = loadCustomExercises().filter(e => e.id !== id);
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(exercises)); } catch {}
+}
+
+// ── Per-exercise voice recordings (stored as base64 data URLs in localStorage)
+const VOICE_KEY = (id: string, phase: string) => `monky_custom_voice_${id}_${phase}`;
+
+export function saveExerciseVoice(exerciseId: string, phase: string, dataUrl: string) {
+  try { localStorage.setItem(VOICE_KEY(exerciseId, phase), dataUrl); } catch {}
+}
+
+export function loadExerciseVoice(exerciseId: string, phase: string): string | null {
+  try { return localStorage.getItem(VOICE_KEY(exerciseId, phase)); } catch { return null; }
+}
+
+export function deleteExerciseVoice(exerciseId: string, phase: string) {
+  try { localStorage.removeItem(VOICE_KEY(exerciseId, phase)); } catch {}
+}
+
+export function playExerciseVoice(exerciseId: string, phase: string) {
+  const dataUrl = loadExerciseVoice(exerciseId, phase);
+  if (!dataUrl) return;
+  try {
+    const audio = new Audio(dataUrl);
+    audio.volume = 1.0;
+    audio.play().catch(() => {});
+  } catch {}
 }
 
 // Convert a CustomBreathExercise to a BreathChallenge so BreathChallengeScreen can run it

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { BreathChallenge } from "@/lib/breath-challenges";
+import { loadExerciseVoice } from "@/lib/custom-breath-exercises";
 
 interface Props {
   challenge: BreathChallenge;
@@ -36,12 +37,33 @@ const PHASE_TO_CUE: Record<string, VoiceCueId> = {
   "Balance":    "hold",
 };
 
-// Play a custom uploaded audio cue (served from /api/voice/:id)
-// Falls back silently if not uploaded
-function playVoiceCue(id: VoiceCueId, musicAudio: HTMLAudioElement | null) {
-  const audio = new Audio(`/api/voice/${id}`);
+// Phase label → custom exercise voice key mapping
+const PHASE_TO_VOICE_KEY: Record<string, string> = {
+  "Inhale":     "inhale",
+  "Hold":       "holdIn",
+  "Exhale":     "exhale",
+  "Hold Empty": "holdOut",
+  "Pump":       "inhale",
+  "Full Hold":  "holdIn",
+  "Release":    "exhale",
+  "Balance":    "holdIn",
+};
+
+// Play a voice cue — checks custom exercise recordings first, then falls back to uploaded /api/voice cues
+function playVoiceCue(id: VoiceCueId, musicAudio: HTMLAudioElement | null, exerciseId?: string, phaseLabel?: string) {
+  let src: string | null = null;
+
+  // For custom exercises, try the per-phase recording first
+  if (exerciseId?.startsWith("custom-") && phaseLabel) {
+    const voiceKey = PHASE_TO_VOICE_KEY[phaseLabel];
+    if (voiceKey) src = loadExerciseVoice(exerciseId, voiceKey);
+  }
+
+  // Fall back to uploaded /api/voice cue
+  if (!src) src = `/api/voice/${id}`;
+
+  const audio = new Audio(src);
   audio.volume = 1.0;
-  // Duck music while cue plays
   if (musicAudio) musicAudio.volume = 0.08;
   audio.play().catch(() => {});
   audio.onended = () => { if (musicAudio) musicAudio.volume = 0.22; };
@@ -118,7 +140,7 @@ export function BreathChallengeScreen({ challenge, onComplete, onSkip, practiceM
     if (phaseIdx === prevPhaseRef.current) return;
     prevPhaseRef.current = phaseIdx;
     const cueId = PHASE_TO_CUE[phase.label];
-    if (cueId) setTimeout(() => playVoiceCue(cueId, audioRef.current), 250);
+    if (cueId) setTimeout(() => playVoiceCue(cueId, audioRef.current, challenge.id, phase.label), 250);
   }, [phaseIdx, stage, phase.label]);
 
   // ── Main countdown ────────────────────────────────────────────────────────
