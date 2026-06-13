@@ -68,12 +68,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const pool = getPool();
   try {
-    await ensureTables(pool);
-
     const rawEmail = req.headers["x-user-email"];
     const email = (Array.isArray(rawEmail) ? rawEmail[0] : rawEmail || "").trim().toLowerCase() || null;
 
     if (req.method === "GET") {
+      // Only ensure tables on GET (login flow) — not on every PATCH
+      await ensureTables(pool);
       // No email = not logged in → return null so app shows login screen
       if (!email) return res.status(401).json({ error: "Not authenticated" });
 

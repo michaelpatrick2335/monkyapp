@@ -50,15 +50,23 @@ export function ExperiencePicker({ onComplete }: ExperiencePickerProps) {
     if (selected === null) return;
     const opt = OPTIONS[selected];
     setLoading(true);
+    // Always advance after 4s max — never get stuck
+    const fallback = setTimeout(() => {
+      markExperiencePicked();
+      onComplete();
+    }, 4000);
     try {
       await apiRequest("PATCH", "/api/user", {
         tier: opt.tier,
         level: opt.level,
       });
+      clearTimeout(fallback);
       markExperiencePicked();
       onComplete();
     } catch {
-      setLoading(false);
+      clearTimeout(fallback);
+      markExperiencePicked();
+      onComplete();
     }
   };
 
