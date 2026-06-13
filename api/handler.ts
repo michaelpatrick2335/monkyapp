@@ -149,8 +149,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ── POST /api/unlock ─────────────────────────────────────────────────────
     if (path === "/unlock") {
       if (method !== "POST") return res.status(405).json({ error: "Method not allowed" });
-      const row = await getOrCreate(pool, email);
-      const updated = await updateUser(pool, row.id, { isPremium: true });
+      // Accept email from body (post-Stripe flow) or header
+      const bodyEmail = (req.body as any)?.email as string | undefined;
+      const bodyName = (req.body as any)?.name as string | undefined;
+      const unlockEmail = bodyEmail?.trim().toLowerCase() || email;
+      if (!unlockEmail) return res.status(400).json({ error: "Email required" });
+      const row = await getOrCreate(pool, unlockEmail);
+      const updates: Record<string, any> = { isPremium: true };
+      if (bodyName) updates.name = bodyName;
+      const updated = await updateUser(pool, row.id, updates);
       return res.json(rowToUser(updated));
     }
 
