@@ -57,11 +57,20 @@
       gap: 10px;
     }
 
-    .nav-logo img {
-      height: 38px;
+    .nav-logo-circle {
+      height: 36px;
+      width: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .nav-logo-wordmark {
+      height: 28px;
       width: auto;
       object-fit: contain;
-      filter: brightness(0) invert(1);
+      mix-blend-mode: screen;
+      filter: brightness(1.1) contrast(1.1);
     }
 
     .nav-cta {
@@ -725,7 +734,8 @@
   <!-- NAV -->
   <nav>
     <div class="nav-logo">
-      <img src="/app/monky_logo_transparent.png" alt="MONKy" />
+      <img src="/app/monkey_circle.jpeg" alt="MONKy" class="nav-logo-circle" />
+      <img src="/app/wordmark.jpeg" alt="Monky" class="nav-logo-wordmark" />
     </div>
     <button class="nav-cta" onclick="openSignup()">Get the App →</button>
   </nav>
