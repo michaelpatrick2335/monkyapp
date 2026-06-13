@@ -1,6 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Capacitor } from "@capacitor/core";
+import {
+  getMonthlyOffering,
+  purchaseMonthly,
+  restorePurchases,
+  type MonthlyOffering,
+} from "@/lib/iap";
 import monkyMonkeyOnly from "@/assets/monkey_new.jpeg";
 
 interface PaywallProps {
@@ -17,9 +24,23 @@ const PERKS = [
   { icon: "✨", text: "Access to Experienced & Enlightened tiers" },
 ];
 
+const IS_IOS = Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios";
+
 export function Paywall({ onUnlock, userName }: PaywallProps) {
   const [purchased, setPurchased] = useState(false);
+  const [offering, setOffering] = useState<MonthlyOffering | null>(null);
+  const [iapBusy, setIapBusy] = useState(false);
+  const [iapError, setIapError] = useState("");
 
+  // Load IAP offering on mount (iOS only).
+  useEffect(() => {
+    if (!IS_IOS) return;
+    getMonthlyOffering()
+      .then((o) => setOffering(o))
+      .catch(() => setOffering(null));
+  }, []);
+
+  // Web/Stripe path (unchanged) — used on monkyapp.com.
   const unlockMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/unlock", {}),
     onSuccess: () => {
@@ -28,6 +49,38 @@ export function Paywall({ onUnlock, userName }: PaywallProps) {
       setTimeout(onUnlock, 1800);
     },
   });
+
+  // iOS IAP path — RevenueCat / Apple In-App Purchase.
+  const handleIAPPurchase = async () => {
+    setIapBusy(true);
+    setIapError("");
+    const result = await purchaseMonthly();
+    setIapBusy(false);
+    if (result.ok) {
+      // Tell our backend so the user's account is flagged premium across devices.
+      apiRequest("POST", "/api/unlock", {}).catch(() => {});
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      setPurchased(true);
+      setTimeout(onUnlock, 1800);
+    } else if (!result.cancelled) {
+      setIapError(result.error);
+    }
+  };
+
+  const handleRestore = async () => {
+    setIapBusy(true);
+    setIapError("");
+    const restored = await restorePurchases();
+    setIapBusy(false);
+    if (restored) {
+      apiRequest("POST", "/api/unlock", {}).catch(() => {});
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      setPurchased(true);
+      setTimeout(onUnlock, 1500);
+    } else {
+      setIapError("No active subscription found to restore.");
+    }
+  };
 
   if (purchased) {
     return (
@@ -38,6 +91,24 @@ export function Paywall({ onUnlock, userName }: PaywallProps) {
       </div>
     );
   }
+
+  // Pricing display. On iOS use the live price from the App Store (falls back to $6.99).
+  // On web, keep the existing $4.99 web price.
+  const displayPrice = IS_IOS ? (offering?.priceString || "$6.99") : "$4.99";
+  const trialDays = IS_IOS ? (offering?.introTrialDays ?? 3) : null;
+  const ctaLabel = IS_IOS
+    ? (iapBusy
+        ? "Connecting to App Store..."
+        : `Start ${trialDays ?? 3}-day free trial`)
+    : (unlockMutation.isPending ? "Unlocking..." : `Unlock for ${displayPrice} 🙏`);
+
+  const handleCTA = () => {
+    if (IS_IOS) {
+      void handleIAPPurchase();
+    } else {
+      unlockMutation.mutate();
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-start px-5 py-8 stars-bg overflow-y-auto">
@@ -59,14 +130,18 @@ export function Paywall({ onUnlock, userName }: PaywallProps) {
         className="glass-card rounded-3xl p-5 w-full max-w-sm mb-5"
         style={{ border: "1.5px solid rgba(245,200,66,0.3)", boxShadow: "0 0 30px rgba(245,200,66,0.08)" }}
       >
-        {/* Lifetime label */}
+        {/* Price label */}
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="font-display font-bold text-foreground text-lg">MONKy Full Access</p>
-            <p className="text-muted-foreground text-xs">Monthly subscription · Cancel anytime</p>
+            <p className="text-muted-foreground text-xs">
+              {IS_IOS && trialDays
+                ? `${trialDays}-day free trial · Cancel anytime`
+                : "Monthly subscription · Cancel anytime"}
+            </p>
           </div>
           <div className="text-right">
-            <p className="font-display font-bold text-gold text-2xl">$4.99</p>
+            <p className="font-display font-bold text-gold text-2xl">{displayPrice}</p>
             <p className="text-muted-foreground text-xs">/month</p>
           </div>
         </div>
@@ -88,8 +163,8 @@ export function Paywall({ onUnlock, userName }: PaywallProps) {
 
       {/* CTA */}
       <button
-        onClick={() => unlockMutation.mutate()}
-        disabled={unlockMutation.isPending}
+        onClick={handleCTA}
+        disabled={iapBusy || unlockMutation.isPending}
         className="w-full max-w-sm py-5 rounded-3xl font-display font-bold text-lg transition-all active:scale-95 hover:scale-[1.02] disabled:opacity-50"
         style={{
           background: "linear-gradient(135deg, var(--color-saffron), var(--color-gold))",
@@ -98,18 +173,60 @@ export function Paywall({ onUnlock, userName }: PaywallProps) {
         }}
         data-testid="button-unlock"
       >
-        {unlockMutation.isPending ? "Unlocking..." : "Unlock for $4.99 🙏"}
+        {ctaLabel}
       </button>
+
+      {/* Error */}
+      {iapError && (
+        <div
+          className="w-full max-w-sm mt-3 px-4 py-3 rounded-xl text-sm text-center"
+          style={{
+            background: "rgba(239,68,68,0.12)",
+            border: "1px solid rgba(239,68,68,0.3)",
+            color: "#f87171",
+          }}
+        >
+          {iapError}
+        </div>
+      )}
 
       {/* Fine print */}
       <p className="text-xs text-muted-foreground mt-3 text-center max-w-xs">
-        $4.99/month. Cancel anytime. Your progress is always saved.
+        {IS_IOS && trialDays ? (
+          <>
+            Free for {trialDays} days, then {displayPrice}/month.
+            Cancel anytime in Settings · App Store.
+            Subscription renews automatically.
+          </>
+        ) : (
+          <>{displayPrice}/month. Cancel anytime. Your progress is always saved.</>
+        )}
       </p>
 
-      {/* Restore note */}
-      <button className="mt-4 text-xs text-muted-foreground underline underline-offset-4 opacity-60 hover:opacity-100 transition-opacity">
-        Restore purchase
-      </button>
+      {/* Restore — only meaningful on iOS */}
+      {IS_IOS && (
+        <button
+          onClick={handleRestore}
+          disabled={iapBusy}
+          className="mt-4 text-xs text-muted-foreground underline underline-offset-4 opacity-60 hover:opacity-100 transition-opacity disabled:opacity-30"
+          data-testid="button-restore"
+        >
+          Restore purchase
+        </button>
+      )}
+
+      {/* Required legal links on the iOS paywall (Apple Guideline 3.1.2 / 5.1.1) */}
+      {IS_IOS && (
+        <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground opacity-70">
+          <a href="https://www.monkyapp.com/terms" target="_blank" rel="noopener" className="underline underline-offset-4">
+            Terms of Use
+          </a>
+          <span>·</span>
+          <a href="https://www.monkyapp.com/privacy" target="_blank" rel="noopener" className="underline underline-offset-4">
+            Privacy
+          </a>
+        </div>
+      )}
     </div>
   );
 }

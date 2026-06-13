@@ -2,13 +2,17 @@ import { useState } from "react";
 import { Switch, Route, Router } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { useQuery } from "@tanstack/react-query";
+import { Capacitor } from "@capacitor/core";
 import { queryClient, getQueryFn, clearUserEmail, hasPickedExperience } from "@/lib/queryClient";
 import { Onboarding } from "@/pages/Onboarding";
 import { ExperiencePicker } from "@/pages/ExperiencePicker";
 import { Dashboard } from "@/pages/Dashboard";
+import { Paywall } from "@/pages/Paywall";
 import { MonkyLoader } from "@/components/MonkyLoader";
 import { Toaster } from "@/components/ui/toaster";
 import type { User } from "@shared/schema";
+
+const IS_IOS = Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios";
 
 function AppContent() {
   // Local flag: once user taps a level, go straight to Dashboard — no re-fetch needed
@@ -26,8 +30,31 @@ function AppContent() {
     return <MonkyLoader />;
   }
 
-  // Not logged in or not premium → login screen
-  if (!user || !user.isPremium) {
+  // Not logged in → login screen
+  if (!user) {
+    return (
+      <Onboarding
+        onComplete={() => {
+          queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        }}
+      />
+    );
+  }
+
+  // Logged in but not premium
+  // • On iOS: show the in-app paywall (Apple IAP)
+  // • On web: send back to login (web signup uses the Stripe paywall in the marketing flow)
+  if (!user.isPremium) {
+    if (IS_IOS) {
+      return (
+        <Paywall
+          userName={user.name || "friend"}
+          onUnlock={() => {
+            queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+          }}
+        />
+      );
+    }
     return (
       <Onboarding
         onComplete={() => {

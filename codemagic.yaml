@@ -15,6 +15,9 @@ workflows:
         APP_ID: com.monkyapp.meditation
         VITE_NATIVE_BUILD: "1"
         VITE_API_BASE_URL: "https://www.monkyapp.com"
+        # Set VITE_REVENUECAT_IOS_KEY in the Codemagic UI under Environment
+        # variables (do not commit the key here). Required for In-App Purchase.
+        # VITE_REVENUECAT_IOS_KEY: "appl_xxxxxxxxxxxxxxxxxxxxx"
       node: 22.11.0
       xcode: latest
       # Capacitor 8 uses Swift Package Manager, not CocoaPods — no cocoapods env needed
@@ -31,7 +34,10 @@ workflows:
           npm ci || npm install
       - name: Build web client (native mode)
         script: |
-          VITE_NATIVE_BUILD=1 VITE_API_BASE_URL=https://www.monkyapp.com npx tsx script/build.ts
+          VITE_NATIVE_BUILD=1 \
+          VITE_API_BASE_URL=https://www.monkyapp.com \
+          VITE_REVENUECAT_IOS_KEY="$VITE_REVENUECAT_IOS_KEY" \
+            npx tsx script/build.ts
       - name: Add iOS platform (first run only)
         script: |
           if [ ! -d "ios" ]; then

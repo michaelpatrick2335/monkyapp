@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html,body{font-family:'Inter',sans-serif;background:#000}
+  .canvas{width:1320px;height:2868px;background:linear-gradient(180deg,#0a1820 0%,#0d0f1a 60%,#000 100%);position:relative;overflow:hidden}
+  .leaves-tl{position:absolute;top:-80px;left:-120px;width:480px;height:480px;background:radial-gradient(ellipse 380px 320px at 60% 60%,#1a3d2a 0%,transparent 70%);opacity:0.6}
+  .leaves-tr{position:absolute;top:-100px;right:-140px;width:480px;height:480px;background:radial-gradient(ellipse 360px 340px at 40% 60%,#1a3d2a 0%,transparent 70%);opacity:0.6}
+  .marketing{position:absolute;top:160px;left:0;right:0;text-align:center;padding:0 80px;z-index:5}
+  .marketing .eyebrow{color:#f5c842;font-size:36px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:32px}
+  .marketing .headline{color:#fff;font-size:132px;font-weight:900;letter-spacing:-0.04em;line-height:1;margin-bottom:24px}
+  .marketing .headline em{color:#f5c842;font-style:normal}
+  .marketing .sub{color:rgba(255,255,255,0.7);font-size:42px;font-weight:500;line-height:1.3}
+  .phone{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);width:880px;height:1800px;background:#000;border-radius:120px;border:14px solid #1a1a1f;box-shadow:0 80px 200px rgba(0,0,0,0.8);overflow:hidden}
+  .notch{position:absolute;top:18px;left:50%;transform:translateX(-50%);width:220px;height:50px;background:#000;border-radius:30px;z-index:10}
+  .screen{position:absolute;inset:0;background:linear-gradient(180deg,#0d0f1a 0%,#0a1820 100%);overflow:hidden;border-radius:108px;padding:110px 50px 60px;display:flex;flex-direction:column}
+
+  .status{display:flex;justify-content:space-between;color:#fff;font-size:24px;font-weight:600;margin-bottom:30px;padding:0 20px;flex-shrink:0}
+
+  .tier-wrap{text-align:center;margin-bottom:26px}
+  .tier-badge{display:inline-flex;align-items:center;gap:12px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:100px;padding:14px 28px;color:#f59e0b;font-size:24px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase}
+  .tier-badge .dot{width:10px;height:10px;background:#f59e0b;border-radius:50%;box-shadow:0 0 12px rgba(245,158,11,0.8)}
+
+  .level-display{text-align:center;margin-bottom:24px}
+  .level-display .label{color:rgba(255,255,255,0.55);font-size:26px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:10px}
+  .level-display .num{color:#f5c842;font-size:170px;font-weight:900;letter-spacing:-0.04em;line-height:1;text-shadow:0 0 60px rgba(245,200,66,0.4)}
+  .level-display .of{color:rgba(255,255,255,0.4);font-size:32px;font-weight:600;margin-top:8px}
+
+  .monkey-container{position:relative;display:flex;justify-content:center;margin-bottom:24px}
+  .monkey-glow{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:280px;height:280px;background:radial-gradient(circle,rgba(245,158,11,0.4) 0%,transparent 60%);filter:blur(30px)}
+  .monkey{position:relative;width:220px;height:220px;background:url('https://www.monkyapp.com/app/monkey_circle.jpeg') center/contain no-repeat;border-radius:50%}
+
+  .name-row{text-align:center;margin-bottom:28px}
+  .name-row .monk-name{color:#fff;font-size:44px;font-weight:800;letter-spacing:-0.02em;margin-bottom:8px}
+  .name-row .bananas{color:#f5c842;font-size:26px;font-weight:600}
+
+  .progress-row{margin-bottom:28px}
+  .progress-row .lbl{display:flex;justify-content:space-between;color:rgba(255,255,255,0.6);font-size:22px;font-weight:500;margin-bottom:12px;padding:0 4px}
+  .progress-bar{height:14px;background:rgba(255,255,255,0.08);border-radius:8px;overflow:hidden;position:relative}
+  .progress-fill{position:absolute;top:0;left:0;width:62%;height:100%;background:linear-gradient(90deg,#f59e0b,#f5c842);border-radius:8px;box-shadow:0 0 20px rgba(245,200,66,0.5)}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px}
+  .stat{background:rgba(255,255,255,0.04);border:1px solid rgba(245,200,66,0.12);border-radius:22px;padding:24px 10px;text-align:center}
+  .stat .v{color:#f5c842;font-size:46px;font-weight:800;letter-spacing:-0.02em;line-height:1;margin-bottom:8px}
+  .stat .k{color:rgba(255,255,255,0.55);font-size:18px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase}
+
+  .music-section{margin-bottom:28px}
+
+  .duration-section{margin-bottom:8px}
+  .duration-section .heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;padding:0 4px}
+  .duration-section .heading .title{color:rgba(255,255,255,0.85);font-size:24px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase}
+  .duration-section .heading .hint{color:rgba(255,255,255,0.4);font-size:18px;font-weight:500}
+  .durations{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .dur{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:20px;padding:24px 6px;text-align:center}
+  .dur.active{background:rgba(245,200,66,0.14);border-color:rgba(245,200,66,0.5)}
+  .dur .v{color:rgba(255,255,255,0.85);font-size:38px;font-weight:800;letter-spacing:-0.02em;line-height:1;margin-bottom:6px}
+  .dur.active .v{color:#f5c842}
+  .dur .u{color:rgba(255,255,255,0.45);font-size:16px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase}
+  .music-section .heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;padding:0 4px}
+  .music-section .heading .title{color:rgba(255,255,255,0.85);font-size:24px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase}
+  .music-section .heading .now{color:#f5c842;font-size:20px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .music-section .heading .now .eq{display:inline-flex;gap:3px;align-items:flex-end;height:16px}
+  .music-section .heading .now .eq span{display:block;width:3px;background:#f5c842;border-radius:2px}
+  .music-section .heading .now .eq span:nth-child(1){height:9px}
+  .music-section .heading .now .eq span:nth-child(2){height:16px}
+  .music-section .heading .now .eq span:nth-child(3){height:11px}
+  .tracks{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+  .track{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:20px;padding:32px 6px 26px;text-align:center}
+  .track.active{background:rgba(245,200,66,0.14);border-color:rgba(245,200,66,0.5);box-shadow:0 0 24px rgba(245,200,66,0.18)}
+  .track .emoji{font-size:48px;line-height:1;margin-bottom:14px}
+  .track .name{color:rgba(255,255,255,0.85);font-size:18px;font-weight:700;letter-spacing:0.01em;line-height:1.1}
+  .track.active .name{color:#f5c842}
+
+  .cta-btn{margin-top:auto;background:linear-gradient(135deg,#f5c842,#e8952a);color:#0d0f1a;text-align:center;padding:32px;border-radius:28px;font-size:34px;font-weight:800;letter-spacing:-0.01em;box-shadow:0 14px 40px rgba(245,200,66,0.35);display:flex;align-items:center;justify-content:center;gap:16px}
+  .cta-btn .play-ic{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:50%;background:rgba(13,15,26,0.18);font-size:20px;padding-left:4px}
+</style></head>
+<body>
+<div class="canvas">
+  <div class="leaves-tl"></div>
+  <div class="leaves-tr"></div>
+
+  <div class="marketing">
+    <div class="eyebrow">Track your progress</div>
+    <h1 class="headline">Climb to <em>1,000.</em></h1>
+    <p class="sub">Earn bananas, unlock tiers,<br/>and watch your habit compound.</p>
+  </div>
+
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen">
+      <div class="status">
+        <span>9:41</span>
+        <span>• • •</span>
+      </div>
+
+      <div class="tier-wrap"><div class="tier-badge"><span class="dot"></span>Experienced • Tier 2</div></div>
+
+      <div class="level-display">
+        <div class="label">Level</div>
+        <div class="num">456</div>
+        <div class="of">of 1,000</div>
+      </div>
+
+      <div class="monkey-container">
+        <div class="monkey-glow"></div>
+        <div class="monkey"></div>
+      </div>
+
+      <div class="name-row">
+        <div class="monk-name">Master Banana</div>
+        <div class="bananas">🍌 1,823 bananas earned</div>
+      </div>
+
+      <div class="progress-row">
+        <div class="lbl"><span>Next level</span><span>6 / 10 bananas</span></div>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="v">127</div><div class="k">Sessions</div></div>
+        <div class="stat"><div class="v">43h</div><div class="k">Meditated</div></div>
+        <div class="stat"><div class="v">28</div><div class="k">Day streak</div></div>
+      </div>
+
+      <div class="music-section">
+        <div class="heading">
+          <div class="title">Meditation Music</div>
+          <div class="now"><span class="eq"><span></span><span></span><span></span></span>Now playing</div>
+        </div>
+        <div class="tracks">
+          <div class="track"><div class="emoji">🌿</div><div class="name">Nature</div></div>
+          <div class="track"><div class="emoji">🌬️</div><div class="name">Breathe</div></div>
+          <div class="track"><div class="emoji">✨</div><div class="name">Healing</div></div>
+          <div class="track active"><div class="emoji">☁️</div><div class="name">Bliss</div></div>
+          <div class="track"><div class="emoji">🕉️</div><div class="name">Om</div></div>
+        </div>
+      </div>
+
+      <div class="duration-section">
+        <div class="heading">
+          <div class="title">Session Length</div>
+          <div class="hint">+1 banana per minute</div>
+        </div>
+        <div class="durations">
+          <div class="dur"><div class="v">3</div><div class="u">Min</div></div>
+          <div class="dur"><div class="v">5</div><div class="u">Min</div></div>
+          <div class="dur active"><div class="v">10</div><div class="u">Min</div></div>
+          <div class="dur"><div class="v">20</div><div class="u">Min</div></div>
+        </div>
+      </div>
+
+      <div class="cta-btn"><span class="play-ic">▶</span>Start 10-min Session</div>
+    </div>
+  </div>
+</div>
+</body></html>

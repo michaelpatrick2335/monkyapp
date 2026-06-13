@@ -4,6 +4,7 @@ import monkyMonkeyOnly from "@/assets/monkey_circle.jpeg";
 import loginScene from "@/assets/login_scene.jpeg";
 import { Browser } from "@capacitor/browser";
 import { Capacitor } from "@capacitor/core";
+import { identifyUser } from "@/lib/iap";
 
 const API_BASE = ("__PORT_5000__" as string).startsWith("__") ? "" : "__PORT_5000__";
 
@@ -88,6 +89,8 @@ export function Onboarding({ onComplete }: { onComplete: () => void; startAtPaym
       const userData = data.user ?? data;
       if (res.ok && userData?.isPremium !== undefined) {
         setUserEmail(trimmed);
+        // Identify this email with RevenueCat so iOS purchases sync to their account.
+        identifyUser(trimmed).catch(() => {});
         queryClient.setQueryData(["/api/user"], userData);
         onComplete();
       } else {

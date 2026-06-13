@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html,body{font-family:'Inter',sans-serif;background:#000}
+  .canvas{width:1320px;height:2868px;background:linear-gradient(180deg,#0a1820 0%,#0d0f1a 60%,#000 100%);position:relative;overflow:hidden}
+  .leaves-tl{position:absolute;top:-80px;left:-120px;width:480px;height:480px;background:radial-gradient(ellipse 380px 320px at 60% 60%,#1a3d2a 0%,transparent 70%);opacity:0.6}
+  .leaves-tr{position:absolute;top:-100px;right:-140px;width:480px;height:480px;background:radial-gradient(ellipse 360px 340px at 40% 60%,#1a3d2a 0%,transparent 70%);opacity:0.6}
+  .marketing{position:absolute;top:140px;left:0;right:0;text-align:center;padding:0 80px;z-index:5}
+  .marketing .eyebrow{color:#f5c842;font-size:36px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:32px}
+  .marketing .headline{color:#fff;font-size:132px;font-weight:900;letter-spacing:-0.04em;line-height:1;margin-bottom:24px}
+  .marketing .headline em{color:#f5c842;font-style:normal}
+  .marketing .sub{color:rgba(255,255,255,0.7);font-size:42px;font-weight:500;line-height:1.3}
+  .phone{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);width:880px;height:1800px;background:#000;border-radius:120px;border:14px solid #1a1a1f;box-shadow:0 80px 200px rgba(0,0,0,0.8);overflow:hidden}
+  .notch{position:absolute;top:18px;left:50%;transform:translateX(-50%);width:220px;height:50px;background:#000;border-radius:30px;z-index:10}
+  .screen{position:absolute;inset:0;background:linear-gradient(180deg,#0d0f1a 0%,#0a1820 100%);overflow:hidden;border-radius:108px;padding:120px 50px 50px}
+
+  .status{display:flex;justify-content:space-between;color:#fff;font-size:24px;font-weight:600;margin-bottom:40px;padding:0 20px}
+
+  .page-title{color:#fff;font-size:64px;font-weight:800;letter-spacing:-0.02em;margin-bottom:8px}
+  .page-sub{color:rgba(255,255,255,0.55);font-size:26px;font-weight:500;margin-bottom:36px}
+
+  .journal-header{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,rgba(245,200,66,0.15),rgba(232,149,42,0.05));border:1px solid rgba(245,200,66,0.3);border-radius:24px;padding:24px 28px;margin-bottom:24px;cursor:pointer}
+  .journal-header .left{display:flex;align-items:center;gap:18px}
+  .journal-header .icon{width:54px;height:54px;border-radius:14px;background:rgba(245,200,66,0.2);display:flex;align-items:center;justify-content:center;font-size:32px}
+  .journal-header .title{color:#f5c842;font-size:34px;font-weight:700;letter-spacing:-0.01em}
+  .journal-header .count{color:rgba(245,200,66,0.7);font-size:22px;font-weight:500;margin-top:4px}
+  .journal-header .arrow{color:#f5c842;font-size:36px;transform:rotate(180deg)}
+
+  .entry{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:20px;padding:24px 26px;margin-bottom:14px}
+  .entry .meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .entry .date{color:rgba(255,255,255,0.55);font-size:20px;font-weight:500}
+  .entry .tier-pill{display:inline-flex;align-items:center;gap:8px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);border-radius:100px;padding:6px 14px;color:#f59e0b;font-size:18px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase}
+  .entry .tier-pill.newbie{background:rgba(74,222,128,0.15);border-color:rgba(74,222,128,0.3);color:#4ade80}
+  .entry .text{color:rgba(255,255,255,0.85);font-size:26px;font-weight:400;line-height:1.45}
+  .entry .level{color:#f5c842;font-weight:600}
+</style></head>
+<body>
+<div class="canvas">
+  <div class="leaves-tl"></div>
+  <div class="leaves-tr"></div>
+
+  <div class="marketing">
+    <div class="eyebrow">Your mind, on paper</div>
+    <h1 class="headline">A <em>journal</em><br/>that listens.</h1>
+    <p class="sub">Capture how you feel after every<br/>session. Watch patterns emerge.</p>
+  </div>
+
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen">
+      <div class="status">
+        <span>9:41</span>
+        <span>• • •</span>
+      </div>
+
+      <h1 class="page-title">Meditation Journal</h1>
+      <p class="page-sub">28 entries · 4 weeks in a row</p>
+
+      <div class="journal-header">
+        <div class="left">
+          <div class="icon">📖</div>
+          <div>
+            <div class="title">My Journal</div>
+            <div class="count">Tap to collapse</div>
+          </div>
+        </div>
+        <div class="arrow">▾</div>
+      </div>
+
+      <div class="entry">
+        <div class="meta">
+          <span class="date">Today · 7:02 AM</span>
+          <span class="tier-pill">Experienced · L456</span>
+        </div>
+        <div class="text">First sit of the day. Mind kept wandering to the meeting at 10 but I came back to the breath each time. <span class="level">10 minutes felt like 3.</span></div>
+      </div>
+
+      <div class="entry">
+        <div class="meta">
+          <span class="date">Yesterday · 9:47 PM</span>
+          <span class="tier-pill">Experienced · L455</span>
+        </div>
+        <div class="text">Wound up after a long day. Body scan helped me notice my shoulders were up by my ears. Let them drop. Sleep came fast.</div>
+      </div>
+
+      <div class="entry">
+        <div class="meta">
+          <span class="date">Yesterday · 6:30 AM</span>
+          <span class="tier-pill">Experienced · L454</span>
+        </div>
+        <div class="text">28-day streak. I don't even think about it now — I just sit. Coffee tastes better after.</div>
+      </div>
+
+      <div class="entry">
+        <div class="meta">
+          <span class="date">Jun 11 · 7:15 AM</span>
+          <span class="tier-pill newbie">Experienced · L453</span>
+        </div>
+        <div class="text">Felt restless at first. The 4-7-8 breathing pattern slowed me down within a minute.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>
