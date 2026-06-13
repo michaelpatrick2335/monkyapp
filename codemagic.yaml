@@ -47,20 +47,25 @@ workflows:
 
           # Step 1: Generate a fresh RSA private key for the iOS distribution certificate.
           # Apple Developer accounts that have never had an iOS cert need this seeded.
+          # ssh-keygen writes both public and private to the path; we want only the private (PEM) file.
           PRIVATE_KEY_PATH="/tmp/ios_distribution_cert.key"
           if [ ! -f "$PRIVATE_KEY_PATH" ]; then
             echo "Generating private key for distribution certificate..."
             ssh-keygen -t rsa -b 2048 -m PEM -f "$PRIVATE_KEY_PATH" -q -N ""
           fi
+          # Sanity check the file exists and is readable
+          ls -la "$PRIVATE_KEY_PATH"
+          head -1 "$PRIVATE_KEY_PATH"
 
           # Step 2: fetch-signing-files with --create + --certificate-key will
           # auto-create BOTH the distribution certificate AND the provisioning
-          # profile in one shot if either is missing. This is the canonical
-          # Codemagic recipe for brand-new Apple accounts.
+          # profile in one shot if either is missing. The CLI requires the
+          # @file: prefix for file paths (it interprets bare strings as inline
+          # PEM content).
           echo "Fetching/creating cert + App Store profile for $APP_ID..."
           app-store-connect fetch-signing-files "$APP_ID" \
             --type IOS_APP_STORE \
-            --certificate-key="$PRIVATE_KEY_PATH" \
+            --certificate-key=@file:"$PRIVATE_KEY_PATH" \
             --create
 
           # Step 3: Add fetched certs + profiles to the keychain & Xcode.
