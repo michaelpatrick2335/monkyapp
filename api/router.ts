@@ -3,6 +3,8 @@
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Pool } from "pg";
+// Stripe is loaded dynamically per-request to avoid bundling issues
+// Using require() at module level - Vercel bundles this fine at runtime
 
 // ── DB helpers ──────────────────────────────────────────────────────────────
 
@@ -252,8 +254,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (method !== "POST") return res.status(405).json({ error: "Method not allowed" });
       const stripeKey = process.env.STRIPE_SECRET_KEY;
       if (!stripeKey) return res.json({ demo: true });
-      const Stripe = (await import("stripe")).default;
-      const stripe = new Stripe(stripeKey, { apiVersion: "2024-06-20" as any });
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const StripeLib = require("stripe");
+      const stripe = new StripeLib(stripeKey, { apiVersion: "2024-06-20" });
       const { email: stripeEmail } = req.body as { email: string };
       let customerId: string | undefined;
       if (stripeEmail) {
@@ -270,8 +273,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (method !== "POST") return res.status(405).json({ error: "Method not allowed" });
       const stripeKey = process.env.STRIPE_SECRET_KEY;
       if (!stripeKey) return res.json({ demo: true });
-      const Stripe = (await import("stripe")).default;
-      const stripe = new Stripe(stripeKey, { apiVersion: "2024-06-20" as any });
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const StripeLib = require("stripe");
+      const stripe = new StripeLib(stripeKey, { apiVersion: "2024-06-20" });
       const { customerId, paymentMethodId } = req.body as { customerId: string; paymentMethodId: string };
       await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
       await stripe.customers.update(customerId, { invoice_settings: { default_payment_method: paymentMethodId } });
@@ -289,8 +293,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (method !== "POST") return res.status(405).json({ error: "Method not allowed" });
       const stripeKey = process.env.STRIPE_SECRET_KEY;
       if (!stripeKey) return res.json({ demo: true });
-      const Stripe = (await import("stripe")).default;
-      const stripe = new Stripe(stripeKey, { apiVersion: "2024-06-20" as any });
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const StripeLib = require("stripe");
+      const stripe = new StripeLib(stripeKey, { apiVersion: "2024-06-20" });
       const { email: stripeEmail } = req.body as { email: string };
       const origin = (req.headers.origin as string) || "https://www.monkyapp.com";
       const session = await stripe.checkout.sessions.create({
