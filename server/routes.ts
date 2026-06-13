@@ -73,7 +73,7 @@ const voiceUpload = multer({
 export async function registerRoutes(httpServer: Server, app: Express) {
 
   // Get or create user
-  const TEST_ACCOUNTS = ["mdore06@gmail.com", "michaelpatrick2335@gmail.com"];
+  const TEST_ACCOUNTS = ["mdore06@gmail.com", "michaelpatrick2335@gmail.com", "appreview@monkyapp.com"];
 
   // Helper to get current user from x-user-email header
   function getCurrentUser(req: Request): schema.User {
@@ -107,7 +107,7 @@ export async function registerRoutes(httpServer: Server, app: Express) {
       // Copy all fields of found onto user id=1 so the app session resumes
       const restored = storage.restoreUser(found);
       // Test account — always premium
-      const TEST_ACCOUNTS = ["mdore06@gmail.com", "michaelpatrick2335@gmail.com"];
+      const TEST_ACCOUNTS = ["mdore06@gmail.com", "michaelpatrick2335@gmail.com", "appreview@monkyapp.com"];
       if (TEST_ACCOUNTS.includes(email)) {
         const unlocked = storage.updateUser(restored.id, { isPremium: true });
         return res.json(unlocked);

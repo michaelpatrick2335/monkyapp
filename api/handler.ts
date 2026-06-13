@@ -8,7 +8,7 @@ import { Pool } from "pg";
 
 // ── DB helpers ──────────────────────────────────────────────────────────────
 
-const TEST_ACCOUNTS = ["mdore06@gmail.com", "michaelpatrick2335@gmail.com"];
+const TEST_ACCOUNTS = ["mdore06@gmail.com", "michaelpatrick2335@gmail.com", "appreview@monkyapp.com"];
 
 function makePool() {
   return new Pool({

@@ -43,6 +43,16 @@ async function buildAll() {
   // Rename app/app.html -> app/index.html so Vercel serves it at /app
   await copyFile("dist/public/app/app.html", "dist/public/app/index.html");
 
+  // Copy legal/support pages (privacy.html, terms.html, support.html) to dist/public root
+  console.log("copying legal pages...");
+  for (const file of ["privacy.html", "terms.html", "support.html"]) {
+    try {
+      await copyFile(`client/public/${file}`, `dist/public/${file}`);
+    } catch (e) {
+      console.warn(`  skipped ${file}: ${(e as Error).message}`);
+    }
+  }
+
   // Copy audio files to dist/public/audio/ for static serving
   console.log("copying audio files...");
   await mkdir("dist/public/audio", { recursive: true });
