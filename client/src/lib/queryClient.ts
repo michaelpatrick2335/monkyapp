@@ -2,10 +2,32 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 const API_BASE = "__PORT_5000__".startsWith("__") ? "" : "__PORT_5000__";
 
-// Store current user email — set after login, used on every request
-let _userEmail: string = "";
-export function setUserEmail(email: string) { _userEmail = email; }
+// Store current user email — persisted to localStorage so user stays logged in
+const STORAGE_KEY = "monky_user_email";
+let _userEmail: string = (() => {
+  try { return localStorage.getItem(STORAGE_KEY) || ""; } catch { return ""; }
+})();
+
+export function setUserEmail(email: string) {
+  _userEmail = email;
+  try { if (email) localStorage.setItem(STORAGE_KEY, email); else localStorage.removeItem(STORAGE_KEY); } catch {}
+}
 export function getUserEmail(): string { return _userEmail; }
+export function clearUserEmail() {
+  _userEmail = "";
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem("monky_picked_experience");
+  } catch {}
+}
+
+export function markExperiencePicked() {
+  try { localStorage.setItem("monky_picked_experience", "1"); } catch {}
+}
+
+export function hasPickedExperience(): boolean {
+  try { return !!localStorage.getItem("monky_picked_experience"); } catch { return false; }
+}
 
 function getAuthHeaders(extra?: Record<string, string>): Record<string, string> {
   const headers: Record<string, string> = { ...extra };

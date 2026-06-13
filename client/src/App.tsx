@@ -1,8 +1,9 @@
 import { Switch, Route, Router } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { useQuery } from "@tanstack/react-query";
-import { queryClient, getQueryFn } from "@/lib/queryClient";
+import { queryClient, getQueryFn, clearUserEmail, hasPickedExperience } from "@/lib/queryClient";
 import { Onboarding } from "@/pages/Onboarding";
+import { ExperiencePicker } from "@/pages/ExperiencePicker";
 import { Dashboard } from "@/pages/Dashboard";
 import { MonkyLoader } from "@/components/MonkyLoader";
 import { Toaster } from "@/components/ui/toaster";
@@ -21,7 +22,7 @@ function AppContent() {
     return <MonkyLoader />;
   }
 
-  // Not logged in or not premium → show login screen
+  // Not logged in or not premium → login screen
   if (!user || !user.isPremium) {
     return (
       <Onboarding
@@ -32,10 +33,25 @@ function AppContent() {
     );
   }
 
-  // Logged in + premium → dashboard
+  // First-ever login: show experience picker
+  // Condition: no sessions yet AND hasn't picked this session
+  // totalSessions === 0 is the DB source of truth; localStorage prevents re-showing after they pick
+  const needsExperiencePick = user.totalSessions === 0 && !hasPickedExperience();
+  if (needsExperiencePick) {
+    return (
+      <ExperiencePicker
+        onComplete={() => {
+          queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        }}
+      />
+    );
+  }
+
+  // Fully set up → dashboard
   return (
     <Dashboard
       onLogout={() => {
+        clearUserEmail();
         queryClient.clear();
         window.location.reload();
       }}
