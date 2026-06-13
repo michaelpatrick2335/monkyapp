@@ -37,7 +37,7 @@ sqlite.exec(`
 
 export interface IStorage {
   getUser(id: number): schema.User | undefined;
-  getOrCreateUser(): schema.User;
+  getOrCreateUser(email?: string): schema.User;
   updateUser(id: number, data: Partial<schema.User>): schema.User;
   getUserByEmail(email: string): schema.User | undefined;
   restoreUser(source: schema.User): schema.User;
@@ -50,7 +50,14 @@ export class Storage implements IStorage {
     return db.select().from(schema.user).where(eq(schema.user.id, id)).get();
   }
 
-  getOrCreateUser(): schema.User {
+  getOrCreateUser(email?: string): schema.User {
+    // If email provided, get or create that specific user
+    if (email) {
+      const existing = this.getUserByEmail(email);
+      if (existing) return existing;
+      return db.insert(schema.user).values({ name: "Seeker", tier: "newbie", level: 1, bananas: 0, totalSessions: 0, totalSecondsMediated: 0, streakDays: 0, email: email.toLowerCase() }).returning().get();
+    }
+    // Fallback: get first user or create one
     const existing = db.select().from(schema.user).get();
     if (existing) return existing;
     return db.insert(schema.user).values({ name: "Seeker", tier: "newbie", level: 1, bananas: 0, totalSessions: 0, totalSecondsMediated: 0, streakDays: 0 }).returning().get();

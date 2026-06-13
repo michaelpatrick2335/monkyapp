@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, setUserEmail } from "@/lib/queryClient";
 import monkyMonkeyOnly from "@/assets/monkey_circle.jpeg";
 import loginScene from "@/assets/login_scene.jpeg";
 import { StripePaywall } from "@/components/StripePaywall";
@@ -108,6 +108,8 @@ const _v = "v3-amber"; export function Onboarding({ onComplete, startAtPayment =
   const setupMutation = useMutation({
     mutationFn: async ({ name, tier, email }: { name: string; tier: Tier; email: string }) => {
       const startLevel = tier === "enlightened" ? 500 : tier === "experienced" ? 250 : 1;
+      // Set email for all future requests before the PATCH
+      if (email.trim()) setUserEmail(email.trim().toLowerCase());
       return apiRequest("PATCH", "/api/user", { name, tier, level: startLevel, email: email.trim().toLowerCase() || null });
     },
     onSuccess: () => {
@@ -135,6 +137,8 @@ const _v = "v3-amber"; export function Onboarding({ onComplete, startAtPayment =
       });
       if (res.ok) {
         const userData = await res.json();
+        // Set email for all future requests
+        setUserEmail(trimmed);
         // Seed the cache directly with the login response so no extra refetch needed
         queryClient.setQueryData(["/api/user"], userData);
         onComplete();

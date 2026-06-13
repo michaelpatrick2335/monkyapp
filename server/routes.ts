@@ -1,6 +1,7 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
+import * as schema from "@shared/schema";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -74,9 +75,15 @@ export async function registerRoutes(httpServer: Server, app: Express) {
   // Get or create user
   const TEST_ACCOUNTS = ["mdore06@gmail.com", "michaelpatrick2335@gmail.com"];
 
+  // Helper to get current user from x-user-email header
+  function getCurrentUser(req: Request): schema.User {
+    const email = (req.headers["x-user-email"] as string || "").trim().toLowerCase();
+    return storage.getOrCreateUser(email || undefined);
+  }
+
   app.get("/api/user", (req, res) => {
     try {
-      const user = storage.getOrCreateUser();
+      const user = getCurrentUser(req);
       // Always keep test accounts premium
       if (user.email && TEST_ACCOUNTS.includes(user.email) && !user.isPremium) {
         const unlocked = storage.updateUser(user.id, { isPremium: true });
@@ -114,7 +121,7 @@ export async function registerRoutes(httpServer: Server, app: Express) {
   // Update user profile (name, tier on onboarding)
   app.patch("/api/user", (req, res) => {
     try {
-      const user = storage.getOrCreateUser();
+      const user = getCurrentUser(req);
       const updated = storage.updateUser(user.id, req.body);
       res.json(updated);
     } catch (e) {
@@ -125,7 +132,7 @@ export async function registerRoutes(httpServer: Server, app: Express) {
   // Unlock premium
   app.post("/api/unlock", (req, res) => {
     try {
-      const user = storage.getOrCreateUser();
+      const user = getCurrentUser(req);
       const updated = storage.updateUser(user.id, { isPremium: true });
       res.json(updated);
     } catch (e) {
@@ -137,7 +144,7 @@ export async function registerRoutes(httpServer: Server, app: Express) {
   app.post("/api/session/complete", (req, res) => {
     try {
       const { durationSeconds } = req.body as { durationSeconds: number };
-      const user = storage.getOrCreateUser();
+      const user = getCurrentUser(req);
 
       // Create session record
       const session = storage.createSession({
@@ -277,7 +284,7 @@ export async function registerRoutes(httpServer: Server, app: Express) {
         default_payment_method: paymentMethodId,
       });
       // Unlock the user
-      const user = storage.getOrCreateUser();
+      const user = getCurrentUser(req);
       storage.updateUser(user.id, { isPremium: true });
       res.json({ success: true });
     } catch (e: any) {
@@ -289,7 +296,7 @@ export async function registerRoutes(httpServer: Server, app: Express) {
   app.post("/api/challenge/complete", (req, res) => {
     try {
       const { bananas } = req.body as { bananas: number };
-      const user = storage.getOrCreateUser();
+      const user = getCurrentUser(req);
       const bonusBananas = Math.min(Math.max(bananas, 1), 10); // clamp 1-10
       const updated = storage.updateUser(user.id, {
         bananas: user.bananas + bonusBananas,
@@ -304,7 +311,7 @@ export async function registerRoutes(httpServer: Server, app: Express) {
   app.post("/api/change-level", (req, res) => {
     try {
       const { tier } = req.body as { tier: string };
-      const user = storage.getOrCreateUser();
+      const user = getCurrentUser(req);
       const tierStartLevel: Record<string, number> = {
         newbie: 1,
         experienced: 250,
@@ -322,7 +329,7 @@ export async function registerRoutes(httpServer: Server, app: Express) {
   // Logout — reset user to fresh state for onboarding
   app.post("/api/logout", (req, res) => {
     try {
-      const user = storage.getOrCreateUser();
+      const user = getCurrentUser(req);
       const reset = storage.updateUser(user.id, {
         name: "Seeker",
         tier: "newbie",
@@ -400,7 +407,7 @@ export async function registerRoutes(httpServer: Server, app: Express) {
         return { id, name, size: stat.size, file: f };
       })
       .sort((a, b) => a.id.localeCompare(b.id));
-    const user = storage.getOrCreateUser();
+    const user = getCurrentUser(req);
     res.json({ tracks, active: user.activeMusicTrack ?? null });
   });
 
@@ -452,14 +459,14 @@ export async function registerRoutes(httpServer: Server, app: Express) {
     const files = fs.existsSync(MUSIC_DIR) ? fs.readdirSync(MUSIC_DIR) : [];
     files.filter(f => f.startsWith(`${id}.`)).forEach(f => fs.unlinkSync(path.join(MUSIC_DIR, f)));
     // If this was the active track, clear it
-    const user = storage.getOrCreateUser();
+    const user = getCurrentUser(req);
     if (user.activeMusicTrack === id) storage.updateUser(user.id, { activeMusicTrack: null as any });
     res.json({ ok: true });
   });
 
   // Set active track: POST /api/music/active  { id: "track_xxx" | null }
   app.post("/api/music/active", (req, res) => {
-    const user = storage.getOrCreateUser();
+    const user = getCurrentUser(req);
     const updated = storage.updateUser(user.id, { activeMusicTrack: req.body.id ?? null });
     res.json(updated);
   });
@@ -505,7 +512,7 @@ export async function registerRoutes(httpServer: Server, app: Express) {
       if (!req.file) return res.status(400).json({ error: "No file uploaded" });
       // Save path relative to cwd in the user record
       const relativePath = `/api/profile-pic/file`;
-      const user = storage.getOrCreateUser();
+      const user = getCurrentUser(req);
       const updated = storage.updateUser(user.id, { profilePic: req.file.path });
       res.json({ url: relativePath, user: updated });
     });
@@ -529,7 +536,7 @@ export async function registerRoutes(httpServer: Server, app: Express) {
   app.delete("/api/profile-pic", (_req, res) => {
     const files = fs.existsSync(PROFILE_PIC_DIR) ? fs.readdirSync(PROFILE_PIC_DIR) : [];
     files.filter(f => /^profile\./i.test(f)).forEach(f => fs.unlinkSync(path.join(PROFILE_PIC_DIR, f)));
-    const user = storage.getOrCreateUser();
+    const user = getCurrentUser(req);
     const updated = storage.updateUser(user.id, { profilePic: null as any });
     res.json({ user: updated });
   });
@@ -537,7 +544,7 @@ export async function registerRoutes(httpServer: Server, app: Express) {
   // Get session history
   app.get("/api/sessions", (req, res) => {
     try {
-      const user = storage.getOrCreateUser();
+      const user = getCurrentUser(req);
       const sessions = storage.getSessions(user.id);
       res.json(sessions);
     } catch (e) {
