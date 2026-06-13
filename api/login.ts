@@ -2,9 +2,6 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Pool } from "pg";
 
 const TEST_ACCOUNTS = ["mdore06@gmail.com", "michaelpatrick2335@gmail.com"];
-function makePool() { return new Pool({ connectionString: process.env.DATABASE_URL || process.env.POSTGRES_URL, ssl: { rejectUnauthorized: false } }); }
-async function ensureTables(pool: Pool) { await pool.query(`CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, email TEXT UNIQUE, name TEXT NOT NULL DEFAULT 'Seeker', tier TEXT NOT NULL DEFAULT 'newbie', level INTEGER NOT NULL DEFAULT 1, bananas INTEGER NOT NULL DEFAULT 0, total_sessions INTEGER NOT NULL DEFAULT 0, total_seconds_meditated INTEGER NOT NULL DEFAULT 0, streak_days INTEGER NOT NULL DEFAULT 0, last_session_date TEXT, is_premium BOOLEAN NOT NULL DEFAULT FALSE, free_sessions_used INTEGER NOT NULL DEFAULT 0, profile_pic TEXT, active_music_track TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()); CREATE TABLE IF NOT EXISTS meditation_sessions (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, level INTEGER NOT NULL, tier TEXT NOT NULL, duration_seconds INTEGER NOT NULL, completed_at TEXT NOT NULL, bananas_earned INTEGER NOT NULL DEFAULT 1);`); }
-function rowToUser(row: any) { return { id: row.id, email: row.email ?? null, name: row.name, tier: row.tier, level: row.level, bananas: row.bananas, totalSessions: row.total_sessions, totalSecondsMediated: row.total_seconds_meditated, streakDays: row.streak_days, lastSessionDate: row.last_session_date ?? null, isPremium: row.is_premium, freeSessionsUsed: row.free_sessions_used, profilePic: row.profile_pic ?? null, activeMusicTrack: row.active_music_track ?? null }; }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -13,9 +10,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const pool = makePool();
+  let pool: Pool | null = null;
   try {
-    await ensureTables(pool);
+    const connStr = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+    if (!connStr) return res.status(500).json({ error: "DATABASE_URL not set" });
+
+    pool = new Pool({ connectionString: connStr, ssl: { rejectUnauthorized: false } });
+
+    // Create tables
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY, email TEXT UNIQUE,
+        name TEXT NOT NULL DEFAULT 'Seeker', tier TEXT NOT NULL DEFAULT 'newbie',
+        level INTEGER NOT NULL DEFAULT 1, bananas INTEGER NOT NULL DEFAULT 0,
+        total_sessions INTEGER NOT NULL DEFAULT 0, total_seconds_meditated INTEGER NOT NULL DEFAULT 0,
+        streak_days INTEGER NOT NULL DEFAULT 0, last_session_date TEXT,
+        is_premium BOOLEAN NOT NULL DEFAULT FALSE, free_sessions_used INTEGER NOT NULL DEFAULT 0,
+        profile_pic TEXT, active_music_track TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS meditation_sessions (
+        id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, level INTEGER NOT NULL,
+        tier TEXT NOT NULL, duration_seconds INTEGER NOT NULL, completed_at TEXT NOT NULL,
+        bananas_earned INTEGER NOT NULL DEFAULT 1
+      );
+    `);
+
     const email = ((req.body?.email as string) || "").trim().toLowerCase();
     if (!email) return res.status(400).json({ error: "Email required" });
 
@@ -27,8 +46,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const upd = await pool.query("UPDATE users SET is_premium = TRUE WHERE id = $1 RETURNING *", [user.id]);
       user = upd.rows[0];
     }
-    return res.json(rowToUser(user));
+
+    return res.json({
+      id: user.id, email: user.email, name: user.name, tier: user.tier, level: user.level,
+      bananas: user.bananas, totalSessions: user.total_sessions, totalSecondsMediated: user.total_seconds_meditated,
+      streakDays: user.streak_days, lastSessionDate: user.last_session_date, isPremium: user.is_premium,
+      freeSessionsUsed: user.free_sessions_used, profilePic: user.profile_pic, activeMusicTrack: user.active_music_track
+    });
   } catch (e: any) {
-    return res.status(500).json({ error: e.message });
-  } finally { await pool.end(); }
+    console.error("login error:", e);
+    return res.status(500).json({ error: e.message, type: e.constructor?.name, stack: e.stack?.substring(0, 300) });
+  } finally {
+    if (pool) await pool.end().catch(() => {});
+  }
 }
