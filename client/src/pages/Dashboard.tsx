@@ -20,6 +20,7 @@ import {
 } from "@/lib/monky-game";
 import { getAffirmation } from "@/lib/affirmations";
 import { getRandomChallenge, shouldShowChallenge, BREATH_CHALLENGES, type BreathChallenge } from "@/lib/breath-challenges";
+import { loadCustomExercises, toBreathChallenge } from "@/lib/custom-breath-exercises";
 import { BUILTIN_TRACKS } from "@/lib/meditation-tracks";
 import type { User } from "@shared/schema";
 
@@ -530,6 +531,47 @@ export function Dashboard({ onLogout }: DashboardProps) {
               })}
             </div>
             <p className="text-xs text-muted-foreground text-center mt-2 opacity-50">Complete every 3 sessions to unlock</p>
+
+            {/* Custom exercises */}
+            {(() => {
+              const customs = loadCustomExercises();
+              if (customs.length === 0) return null;
+              return (
+                <div className="mt-4">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Your Custom Exercises</p>
+                  <div className="flex flex-col gap-2">
+                    {customs.map(ex => {
+                      const ch = toBreathChallenge(ex);
+                      const pattern = [ex.inhale, ex.holdIn, ex.exhale, ex.holdOut].filter(v => v > 0).join("-");
+                      return (
+                        <button
+                          key={ex.id}
+                          onClick={() => setPracticeChallenge(ch)}
+                          className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-left transition-all active:scale-95"
+                          style={{
+                            background: "rgba(167,139,250,0.06)",
+                            border: "1.5px solid rgba(167,139,250,0.25)",
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl">{ex.emoji}</span>
+                            <div>
+                              <p className="font-display font-bold text-xs" style={{ color: "#a78bfa" }}>{ex.name}</p>
+                              <p className="text-xs text-muted-foreground" style={{ fontSize: "0.65rem" }}>
+                                {ex.rounds} rounds · {pattern}s
+                              </p>
+                            </div>
+                          </div>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                          </svg>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

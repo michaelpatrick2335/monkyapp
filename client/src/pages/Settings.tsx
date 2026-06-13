@@ -6,6 +6,7 @@ import monkyCircle from "@/assets/monkey_circle.jpeg";
 // Resolve API base the same way queryClient does (handles deployed port proxy)
 const API_BASE = ("__PORT_5000__" as string).startsWith("__") ? "" : "__PORT_5000__";
 import { VOICE_CUES, type VoiceCueId } from "@/components/BreathChallenge";
+import { CustomBreathBuilder, CustomBreathList } from "@/components/CustomBreathBuilder";
 import type { User } from "@shared/schema";
 
 interface SettingsProps {
@@ -453,6 +454,19 @@ export function Settings({ user, onBack, onLogout }: SettingsProps) {
             <p className="text-xs text-muted-foreground text-center mt-1 opacity-60">
               Supported: MP3, WAV, M4A · Max 10MB per file
             </p>
+
+            {/* ── Custom Breath Exercise Builder ── */}
+            <div className="mt-5 pt-5" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">🫁</span>
+                <p className="font-display font-bold text-sm" style={{ color: "var(--foreground)" }}>Custom Breath Exercise</p>
+              </div>
+              <p className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>
+                Build your own pattern — pick inhale, hold, exhale, and rounds, then add it to your dashboard.
+              </p>
+              <CustomBreathBuilder onSaved={() => {}} />
+              <CustomBreathList onDeleted={() => {}} />
+            </div>
           </div>
         )}
       </div>
