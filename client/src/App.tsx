@@ -6,6 +6,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Onboarding } from "@/pages/Onboarding";
 import { Dashboard } from "@/pages/Dashboard";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { MonkyLoader } from "@/components/MonkyLoader";
 import { Toaster } from "@/components/ui/toaster";
 import type { User } from "@shared/schema";
 import paymentBg from "@/assets/payment_bg.jpeg";
@@ -104,11 +105,7 @@ function AppContent() {
   }
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-muted-foreground animate-pulse font-display text-lg">Centering...</div>
-      </div>
-    );
+    return <MonkyLoader />;
   }
 
   // New user: no name set yet (still "Seeker" with no sessions) OR force back to onboarding

@@ -8,6 +8,7 @@ import { BenefitPopup, BENEFIT_POPUPS } from "@/components/BenefitPopup";
 import { MustReadPopup } from "@/components/MustReadPopup";
 import { MusicPickerPopup } from "@/components/MusicPickerPopup";
 import monkyMonkeyOnly from "@/assets/monkey_circle.jpeg";
+import { MonkyLoader } from "@/components/MonkyLoader";
 import monkyWordmark from "@/assets/wordmark_new.jpeg";
 import {
   getMonkName,
@@ -104,10 +105,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
   });
 
   if (isLoading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-muted-foreground animate-pulse font-display text-lg">Centering...</div>
-      </div>
+    return (<MonkyLoader />
     );
   }
 
