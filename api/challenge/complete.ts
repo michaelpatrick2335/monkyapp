@@ -1,21 +1,21 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getOrCreateUser, updateUser, getCurrentEmail } from "../_db";
+import { makePool, ensureTables, rowToUser, getOrCreateUser, updateUser, getEmail, cors } from "../_lib";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-user-email");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  cors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
-
+  const pool = makePool();
   try {
+    await ensureTables(pool);
     const { bananas } = req.body as { bananas: number };
-    const email = getCurrentEmail(req);
-    const user = await getOrCreateUser(email);
-    const bonusBananas = Math.min(Math.max(bananas, 1), 10);
-    const updated = await updateUser(user.id, { bananas: user.bananas + bonusBananas });
-    return res.json({ user: updated, bonusBananas });
+    const email = getEmail(req.headers as any);
+    const userRow = await getOrCreateUser(pool, email);
+    const user = rowToUser(userRow);
+    const bonus = Math.min(Math.max(bananas, 1), 10);
+    const updated = await updateUser(pool, user.id, { bananas: user.bananas + bonus });
+    return res.json({ user: rowToUser(updated), bonusBananas: bonus });
   } catch (e: any) {
-    return res.status(500).json({ error: e.message || "Failed to award bananas" });
-  }
+    return res.status(500).json({ error: e.message });
+  } finally { await pool.end(); }
 }

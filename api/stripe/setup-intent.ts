@@ -1,9 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { cors } from "../_lib";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-user-email");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  cors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
@@ -22,16 +21,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ? existing.data[0].id
         : (await stripe.customers.create({ email })).id;
     }
-
     const setupIntent = await stripe.setupIntents.create({
       customer: customerId,
       payment_method_types: ["card"],
       usage: "off_session",
     });
-
     return res.json({ clientSecret: setupIntent.client_secret, customerId });
   } catch (e: any) {
-    console.error("/api/stripe/setup-intent error:", e);
     return res.status(500).json({ error: e.message });
   }
 }
