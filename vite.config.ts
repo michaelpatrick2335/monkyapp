@@ -12,7 +12,10 @@ export default defineConfig({
     },
   },
   root: path.resolve(import.meta.dirname, "client"),
-  base: "/app/",
+  // Web build serves from /app/ on monkyapp.com. Native (iOS/Android) build is served from
+  // capacitor://localhost/ so assets must be referenced relatively ("./assets/...")
+  // instead of "/app/assets/...". The VITE_NATIVE_BUILD flag flips this.
+  base: process.env.VITE_NATIVE_BUILD === "1" ? "./" : "/app/",
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public/app"),
     emptyOutDir: true,

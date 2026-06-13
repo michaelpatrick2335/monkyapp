@@ -1,6 +1,12 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
-const API_BASE = "__PORT_5000__".startsWith("__") ? "" : "__PORT_5000__";
+// In the web build (served from monkyapp.com), API_BASE is "" so calls go to /api/* on the same origin.
+// In the native iOS/Android build (served from capacitor://localhost), Vite injects VITE_API_BASE_URL
+// at build time so all /api/* calls hit the live monkyapp.com server.
+const BUILD_API_BASE = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
+const API_BASE = BUILD_API_BASE && BUILD_API_BASE.length > 0
+  ? BUILD_API_BASE.replace(/\/$/, "")
+  : ("__PORT_5000__".startsWith("__") ? "" : "__PORT_5000__");
 
 // Store current user email — persisted to localStorage so user stays logged in
 const STORAGE_KEY = "monky_user_email";
