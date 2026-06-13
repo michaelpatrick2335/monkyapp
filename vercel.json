@@ -1,4 +1,12 @@
 {
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/public",
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "nodejs20.x"
+    }
+  },
   "rewrites": [
     { "source": "/app/sw.js", "destination": "/app/sw.js" },
     { "source": "/app/manifest.json", "destination": "/app/manifest.json" },
