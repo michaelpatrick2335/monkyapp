@@ -439,6 +439,27 @@
       color: var(--muted);
     }
 
+    footer .legal-links {
+      margin-top: 10px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+    }
+
+    footer .legal-links a {
+      color: rgba(255,255,255,0.45);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    footer .legal-links a:hover {
+      color: var(--gold);
+    }
+
+    footer .legal-links .sep {
+      margin: 0 6px;
+      color: rgba(255,255,255,0.25);
+    }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 600px) {
       .stat-item { padding: 0 20px; }
@@ -863,6 +884,9 @@
       <img src="/app/monky_logo_transparent.png" alt="MONKy" />
     </div>
     <p>© 2026 MONKy. Level up your mind.</p>
+    <div class="legal-links">
+      <a href="/privacy">Privacy</a><span class="sep">·</span><a href="/terms">Terms</a><span class="sep">·</span><a href="/support">Support</a>
+    </div>
   </footer>
 
 
