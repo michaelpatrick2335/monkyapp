@@ -45,19 +45,22 @@ workflows:
           set -e
           keychain initialize
 
-          # Step 1: Create iOS distribution certificate if none exists.
-          # codemagic-cli-tools will skip silently if a usable cert is already there.
-          echo "Ensuring iOS distribution certificate exists..."
-          app-store-connect certificates create \
-            --type IOS_DISTRIBUTION \
-            --save \
-            --p12-password "${CM_KEYCHAIN_PASSWORD:-codemagic}" || \
-            echo "Certificate creation step finished (may already exist)"
+          # Step 1: Generate a fresh RSA private key for the iOS distribution certificate.
+          # Apple Developer accounts that have never had an iOS cert need this seeded.
+          PRIVATE_KEY_PATH="/tmp/ios_distribution_cert.key"
+          if [ ! -f "$PRIVATE_KEY_PATH" ]; then
+            echo "Generating private key for distribution certificate..."
+            ssh-keygen -t rsa -b 2048 -m PEM -f "$PRIVATE_KEY_PATH" -q -N ""
+          fi
 
-          # Step 2: Fetch or create the App Store provisioning profile for our bundle id.
-          echo "Fetching/creating App Store profile for $APP_ID..."
+          # Step 2: fetch-signing-files with --create + --certificate-key will
+          # auto-create BOTH the distribution certificate AND the provisioning
+          # profile in one shot if either is missing. This is the canonical
+          # Codemagic recipe for brand-new Apple accounts.
+          echo "Fetching/creating cert + App Store profile for $APP_ID..."
           app-store-connect fetch-signing-files "$APP_ID" \
             --type IOS_APP_STORE \
+            --certificate-key="$PRIVATE_KEY_PATH" \
             --create
 
           # Step 3: Add fetched certs + profiles to the keychain & Xcode.
