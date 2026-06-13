@@ -2,6 +2,8 @@ import { useState } from "react";
 import { queryClient, setUserEmail } from "@/lib/queryClient";
 import monkyMonkeyOnly from "@/assets/monkey_circle.jpeg";
 import loginScene from "@/assets/login_scene.jpeg";
+import { Browser } from "@capacitor/browser";
+import { Capacitor } from "@capacitor/core";
 
 const API_BASE = ("__PORT_5000__" as string).startsWith("__") ? "" : "__PORT_5000__";
 
@@ -169,20 +171,60 @@ export function Onboarding({ onComplete }: { onComplete: () => void; startAtPaym
           {loading ? "Looking you up..." : "Log In"}
         </button>
 
-        {/* Create account link */}
-        <a
-          href="https://monkyapp.com"
+        {/* Divider */}
+        <div
           style={{
-            fontSize: "13px",
-            color: "rgba(255,255,255,0.35)",
-            textDecoration: "none",
+            display: "flex",
+            alignItems: "center",
+            width: "100%",
+            gap: 12,
+            margin: "4px 0 18px",
+            color: "rgba(255,255,255,0.4)",
+            fontSize: 12,
+            fontWeight: 600,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
           }}
         >
-          No account?{" "}
-          <span style={{ color: "rgba(245,200,66,0.7)", textDecoration: "underline", fontWeight: 600 }}>
-            Create one
-          </span>
-        </a>
+          <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.12)" }} />
+          <span>New here?</span>
+          <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.12)" }} />
+        </div>
+
+        {/* Create account button — opens monkyapp.com signup in in-app browser */}
+        <button
+          onClick={async () => {
+            const signupUrl = "https://www.monkyapp.com/?signup=1";
+            try {
+              if (Capacitor.isNativePlatform()) {
+                await Browser.open({
+                  url: signupUrl,
+                  presentationStyle: "popover",
+                  toolbarColor: "#0d0f1a",
+                });
+              } else {
+                window.open(signupUrl, "_blank");
+              }
+            } catch {
+              window.open(signupUrl, "_blank");
+            }
+          }}
+          className="w-full py-4 rounded-2xl font-display font-bold text-base transition-all active:scale-95 mb-3"
+          style={{
+            background: "transparent",
+            color: "#f5c842",
+            border: "2px solid rgba(245,200,66,0.5)",
+          }}
+          data-testid="button-create-account"
+        >
+          Create Account
+        </button>
+
+        {/* Helper text */}
+        <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.5, marginTop: 4, maxWidth: 280 }}>
+          Sign up at monkyapp.com to start your free 3-day trial.
+          After signup, return here to log in.
+        </p>
       </div>
     </div>
   );

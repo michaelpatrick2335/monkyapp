@@ -1031,6 +1031,16 @@
       setTimeout(initStripe, 300); // preload Stripe while user fills name
     }
 
+    // Auto-open signup from deep link (?signup=1) — used by iOS app "Create Account" button
+    window.addEventListener("DOMContentLoaded", function() {
+      try {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get("signup") === "1") {
+          setTimeout(openSignup, 200);
+        }
+      } catch (e) {}
+    });
+
     function closeSignup() {
       document.getElementById("signup-overlay").classList.remove("active");
       document.body.style.overflow = "";
