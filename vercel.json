@@ -3,12 +3,29 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist/public",
   "functions": {
-    "api/**/*.ts": {
-      "runtime": "nodejs20.x",
-      "maxDuration": 30
-    }
+    "api/index.ts": { "runtime": "nodejs20.x", "maxDuration": 30 },
+    "api/user.ts": { "runtime": "nodejs20.x", "maxDuration": 30 }
   },
   "rewrites": [
+    { "source": "/api/login", "destination": "/api/index" },
+    { "source": "/api/unlock", "destination": "/api/index" },
+    { "source": "/api/logout", "destination": "/api/index" },
+    { "source": "/api/sessions", "destination": "/api/index" },
+    { "source": "/api/session-complete", "destination": "/api/index" },
+    { "source": "/api/session/complete", "destination": "/api/index" },
+    { "source": "/api/challenge-complete", "destination": "/api/index" },
+    { "source": "/api/challenge/complete", "destination": "/api/index" },
+    { "source": "/api/change-level", "destination": "/api/index" },
+    { "source": "/api/music", "destination": "/api/index" },
+    { "source": "/api/music-active", "destination": "/api/index" },
+    { "source": "/api/music/active", "destination": "/api/index" },
+    { "source": "/api/voice", "destination": "/api/index" },
+    { "source": "/api/stripe-setup-intent", "destination": "/api/index" },
+    { "source": "/api/stripe/setup-intent", "destination": "/api/index" },
+    { "source": "/api/stripe-confirm-subscription", "destination": "/api/index" },
+    { "source": "/api/stripe/confirm-subscription", "destination": "/api/index" },
+    { "source": "/api/stripe-create-subscription", "destination": "/api/index" },
+    { "source": "/api/stripe/create-subscription", "destination": "/api/index" },
     { "source": "/app/sw.js", "destination": "/app/sw.js" },
     { "source": "/app/manifest.json", "destination": "/app/manifest.json" },
     { "source": "/app/:path*", "destination": "/app/index.html" },
