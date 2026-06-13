@@ -134,7 +134,9 @@ const _v = "v3-amber"; export function Onboarding({ onComplete, startAtPayment =
         body: JSON.stringify({ email: trimmed }),
       });
       if (res.ok) {
-        await queryClient.refetchQueries({ queryKey: ["/api/user"] });
+        const userData = await res.json();
+        // Seed the cache directly with the login response so no extra refetch needed
+        queryClient.setQueryData(["/api/user"], userData);
         onComplete();
       } else {
         const data = await res.json();
