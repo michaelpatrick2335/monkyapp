@@ -50,6 +50,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
   const [showMustRead, setShowMustRead] = useState(false);
   const [showMusicPicker, setShowMusicPicker] = useState(false);
   const [showChallengeOffer, setShowChallengeOffer] = useState(false);
+  const [journalOpen, setJournalOpen] = useState(false);
   const [pendingChallenge, setPendingChallenge] = useState<BreathChallenge | null>(null);
   const [bonusBananaAnim, setBonusBananaAnim] = useState<number | null>(null);
   const [showJournal, setShowJournal] = useState(false);
@@ -517,44 +518,68 @@ export function Dashboard({ onLogout }: DashboardProps) {
             </div>
           </div>
 
-          {/* Meditation Journal */}
+          {/* Meditation Journal (collapsible) */}
           <div className="mt-5">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Meditation Journal</p>
-              <span className="text-[10px] text-muted-foreground">{journalEntries.length} entr{journalEntries.length === 1 ? "y" : "ies"}</span>
-            </div>
-            {journalEntries.length === 0 ? (
-              <div
-                className="rounded-xl px-3 py-4 text-center text-xs"
-                style={{ background: "rgba(255,255,255,0.03)", border: "1px dashed rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}
-              >
-                Your reflections will appear here after each meditation.
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1" data-testid="journal-list">
-                {journalEntries.map(j => {
-                  const d = new Date(j.createdAt);
-                  const dateStr = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-                  const timeStr = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-                  return (
-                    <div
-                      key={j.id}
-                      className="rounded-xl px-3 py-2.5"
-                      style={{ background: "rgba(245,200,66,0.05)", border: "1px solid rgba(245,200,66,0.18)" }}
-                      data-testid={`journal-entry-${j.id}`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-display font-bold text-[11px]" style={{ color: "var(--color-gold)" }}>
-                          Level {j.level}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">{dateStr} · {timeStr}</span>
-                      </div>
-                      <p className="text-xs leading-snug" style={{ color: "rgba(255,255,255,0.85)" }}>
-                        {j.entry}
-                      </p>
-                    </div>
-                  );
-                })}
+            <button
+              type="button"
+              onClick={() => setJournalOpen(o => !o)}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors"
+              style={{ background: "rgba(245,200,66,0.06)", border: "1px solid rgba(245,200,66,0.18)" }}
+              data-testid="journal-toggle"
+              aria-expanded={journalOpen}
+            >
+              <span className="text-xs uppercase tracking-wider font-display font-bold" style={{ color: "var(--color-gold)" }}>
+                Meditation Journal
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground">
+                  {journalEntries.length} entr{journalEntries.length === 1 ? "y" : "ies"}
+                </span>
+                <span
+                  className="text-xs transition-transform"
+                  style={{ color: "var(--color-gold)", transform: journalOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+                  aria-hidden="true"
+                >
+                  ▾
+                </span>
+              </span>
+            </button>
+            {journalOpen && (
+              <div className="mt-2">
+                {journalEntries.length === 0 ? (
+                  <div
+                    className="rounded-xl px-3 py-4 text-center text-xs"
+                    style={{ background: "rgba(255,255,255,0.03)", border: "1px dashed rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}
+                  >
+                    Your reflections will appear here after each meditation.
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1" data-testid="journal-list">
+                    {journalEntries.map(j => {
+                      const d = new Date(j.createdAt);
+                      const dateStr = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                      const timeStr = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+                      return (
+                        <div
+                          key={j.id}
+                          className="rounded-xl px-3 py-2.5"
+                          style={{ background: "rgba(245,200,66,0.05)", border: "1px solid rgba(245,200,66,0.18)" }}
+                          data-testid={`journal-entry-${j.id}`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-display font-bold text-[11px]" style={{ color: "var(--color-gold)" }}>
+                              Level {j.level}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">{dateStr} · {timeStr}</span>
+                          </div>
+                          <p className="text-xs leading-snug" style={{ color: "rgba(255,255,255,0.85)" }}>
+                            {j.entry}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
