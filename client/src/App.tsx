@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Switch, Route, Router } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { useQuery } from "@tanstack/react-query";
@@ -10,6 +11,9 @@ import { Toaster } from "@/components/ui/toaster";
 import type { User } from "@shared/schema";
 
 function AppContent() {
+  // Local flag: once user taps a level, go straight to Dashboard — no re-fetch needed
+  const [experienceDone, setExperienceDone] = useState(false);
+
   const { data: user, isLoading } = useQuery<User | null>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
@@ -34,14 +38,14 @@ function AppContent() {
   }
 
   // First-ever login: show experience picker
-  // hasPickedExperience() is the source of truth — set immediately on tap, before any API call
-  const needsExperiencePick = user.totalSessions === 0 && !hasPickedExperience();
+  // experienceDone state OR localStorage flag both bypass this — belt + suspenders
+  const needsExperiencePick = !experienceDone && user.totalSessions === 0 && !hasPickedExperience();
   if (needsExperiencePick) {
     return (
       <ExperiencePicker
         onComplete={() => {
-          // Cache already updated optimistically in ExperiencePicker — just force re-render
-          queryClient.setQueryData(["/api/user"], (old: any) => ({ ...old }));
+          // Set local state immediately — triggers re-render without any API round-trip
+          setExperienceDone(true);
         }}
       />
     );
