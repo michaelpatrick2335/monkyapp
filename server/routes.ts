@@ -72,9 +72,16 @@ const voiceUpload = multer({
 export async function registerRoutes(httpServer: Server, app: Express) {
 
   // Get or create user
+  const TEST_ACCOUNTS = ["mdore06@gmail.com", "michaelpatrick2335@gmail.com"];
+
   app.get("/api/user", (req, res) => {
     try {
       const user = storage.getOrCreateUser();
+      // Always keep test accounts premium
+      if (user.email && TEST_ACCOUNTS.includes(user.email) && !user.isPremium) {
+        const unlocked = storage.updateUser(user.id, { isPremium: true });
+        return res.json(unlocked);
+      }
       res.json(user);
     } catch (e) {
       res.status(500).json({ error: "Failed to get user" });
@@ -92,6 +99,12 @@ export async function registerRoutes(httpServer: Server, app: Express) {
       // Restore this user as the active user (single-user app — just update the record id=1)
       // Copy all fields of found onto user id=1 so the app session resumes
       const restored = storage.restoreUser(found);
+      // Test account — always premium
+      const TEST_ACCOUNTS = ["mdore06@gmail.com", "michaelpatrick2335@gmail.com"];
+      if (TEST_ACCOUNTS.includes(email)) {
+        const unlocked = storage.updateUser(restored.id, { isPremium: true });
+        return res.json(unlocked);
+      }
       res.json(restored);
     } catch (e) {
       res.status(500).json({ error: "Login failed" });
