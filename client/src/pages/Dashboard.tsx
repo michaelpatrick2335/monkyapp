@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { MeditationTimer } from "@/components/MeditationTimer";
+import { MeditationJournal } from "@/components/MeditationJournal";
 import { BreathChallengeScreen } from "@/components/BreathChallenge";
 import { Settings } from "@/pages/Settings";
 import { BenefitPopup, BENEFIT_POPUPS } from "@/components/BenefitPopup";
@@ -51,9 +52,26 @@ export function Dashboard({ onLogout }: DashboardProps) {
   const [showChallengeOffer, setShowChallengeOffer] = useState(false);
   const [pendingChallenge, setPendingChallenge] = useState<BreathChallenge | null>(null);
   const [bonusBananaAnim, setBonusBananaAnim] = useState<number | null>(null);
+  const [showJournal, setShowJournal] = useState(false);
+  const [pendingSessionDuration, setPendingSessionDuration] = useState<number | null>(null);
+  const [savingJournal, setSavingJournal] = useState(false);
 
   const { data: user, isLoading } = useQuery<User>({
     queryKey: ["/api/user"],
+  });
+
+  interface JournalRecord { id: number; level: number; tier: string; entry: string; createdAt: string; }
+  const { data: journalEntries = [] } = useQuery<JournalRecord[]>({
+    queryKey: ["/api/journal"],
+    enabled: !!user,
+  });
+
+  const journalMutation = useMutation({
+    mutationFn: async ({ entry, level, tier }: { entry: string; level: number; tier: string }) =>
+      apiRequest("POST", "/api/journal", { entry, level, tier }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/journal"] });
+    },
   });
 
   const completeMutation = useMutation({
@@ -185,11 +203,51 @@ export function Dashboard({ onLogout }: DashboardProps) {
     );
   }
 
+  async function handleJournalSubmit(entryText: string) {
+    if (!user) return;
+    setSavingJournal(true);
+    try {
+      await journalMutation.mutateAsync({ entry: entryText, level: user.level, tier: user.tier });
+    } catch (e) {
+      // Allow continuing even if journal save fails so the session still counts
+      console.error("Journal save failed:", e);
+    } finally {
+      setSavingJournal(false);
+      setShowJournal(false);
+      const dur = pendingSessionDuration ?? sessionDuration;
+      setPendingSessionDuration(null);
+      completeMutation.mutate(dur);
+    }
+  }
+
+  function handleJournalSkip() {
+    setShowJournal(false);
+    const dur = pendingSessionDuration ?? sessionDuration;
+    setPendingSessionDuration(null);
+    completeMutation.mutate(dur);
+  }
+
+  // Journal screen — shown right after meditation timer completes, before level-up animations
+  if (showJournal) {
+    return (
+      <MeditationJournal
+        level={user.level}
+        onSubmit={handleJournalSubmit}
+        onSkip={handleJournalSkip}
+        isSaving={savingJournal}
+      />
+    );
+  }
+
   if (meditating) {
     return (
       <MeditationTimer
         durationSeconds={sessionDuration}
-        onComplete={() => completeMutation.mutate(sessionDuration)}
+        onComplete={() => {
+          setMeditating(false);
+          setPendingSessionDuration(sessionDuration);
+          setShowJournal(true);
+        }}
         onCancel={() => setMeditating(false)}
         customMusicTrackId={user.activeMusicTrack ?? "bliss"}
       />
@@ -457,6 +515,48 @@ export function Dashboard({ onLogout }: DashboardProps) {
               <p className="text-xs text-muted-foreground mb-1">Day Streak</p>
               <p className="font-bold text-foreground text-lg">{user.streakDays} 🔥</p>
             </div>
+          </div>
+
+          {/* Meditation Journal */}
+          <div className="mt-5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Meditation Journal</p>
+              <span className="text-[10px] text-muted-foreground">{journalEntries.length} entr{journalEntries.length === 1 ? "y" : "ies"}</span>
+            </div>
+            {journalEntries.length === 0 ? (
+              <div
+                className="rounded-xl px-3 py-4 text-center text-xs"
+                style={{ background: "rgba(255,255,255,0.03)", border: "1px dashed rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}
+              >
+                Your reflections will appear here after each meditation.
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1" data-testid="journal-list">
+                {journalEntries.map(j => {
+                  const d = new Date(j.createdAt);
+                  const dateStr = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                  const timeStr = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+                  return (
+                    <div
+                      key={j.id}
+                      className="rounded-xl px-3 py-2.5"
+                      style={{ background: "rgba(245,200,66,0.05)", border: "1px solid rgba(245,200,66,0.18)" }}
+                      data-testid={`journal-entry-${j.id}`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-display font-bold text-[11px]" style={{ color: "var(--color-gold)" }}>
+                          Level {j.level}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">{dateStr} · {timeStr}</span>
+                      </div>
+                      <p className="text-xs leading-snug" style={{ color: "rgba(255,255,255,0.85)" }}>
+                        {j.entry}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Level milestones */}

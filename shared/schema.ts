@@ -38,3 +38,17 @@ export const meditationSession = sqliteTable("meditation_session", {
 export const insertSessionSchema = createInsertSchema(meditationSession).omit({ id: true });
 export type InsertSession = z.infer<typeof insertSessionSchema>;
 export type MeditationSession = typeof meditationSession.$inferSelect;
+
+// Meditation journal — one entry per completed level
+export const journalEntry = sqliteTable("journal_entry", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull(),
+  level: integer("level").notNull(),
+  tier: text("tier").notNull(),
+  entry: text("entry").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
+export const insertJournalSchema = createInsertSchema(journalEntry).omit({ id: true });
+export type InsertJournal = z.infer<typeof insertJournalSchema>;
+export type JournalEntry = typeof journalEntry.$inferSelect;

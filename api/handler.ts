@@ -224,6 +224,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ── GET /api/sessions ────────────────────────────────────────────────────
+    // POST /api/journal — save a journal entry for the current level
+    if (path === "/journal" && method === "POST") {
+      const { entry, level, tier } = req.body as { entry: string; level?: number; tier?: string };
+      const cleaned = (entry || "").trim();
+      if (!cleaned) return res.status(400).json({ error: "Entry is required" });
+      if (cleaned.length > 500) return res.status(400).json({ error: "Entry too long (max 500 chars)" });
+      const u0 = await getOrCreate(pool, email);
+      const user0 = rowToUser(u0);
+      const jr = await pool.query(
+        `INSERT INTO journal_entries (user_id, level, tier, entry, created_at) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+        [user0.id, level ?? user0.level, tier ?? user0.tier, cleaned, new Date().toISOString()]
+      );
+      const j0 = jr.rows[0];
+      return res.json({
+        entry: { id: j0.id, userId: j0.user_id, level: j0.level, tier: j0.tier, entry: j0.entry, createdAt: j0.created_at }
+      });
+    }
+
+    // GET /api/journal — list journal entries (newest first)
+    if (path === "/journal" && method === "GET") {
+      const u1 = await getOrCreate(pool, email);
+      const jr2 = await pool.query(
+        "SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY created_at DESC", [u1.id]
+      );
+      return res.json(jr2.rows.map((j: any) => ({
+        id: j.id, userId: j.user_id, level: j.level, tier: j.tier,
+        entry: j.entry, createdAt: j.created_at,
+      })));
+    }
+
     if (path === "/sessions") {
       if (method !== "GET") return res.status(405).json({ error: "Method not allowed" });
       const row = await getOrCreate(pool, email);
