@@ -125,16 +125,6 @@ export function Onboarding({ onComplete }: { onComplete: () => void; startAtPaym
         className="w-full max-w-sm flex flex-col items-center text-center"
         style={{ position: "relative", zIndex: 2 }}
       >
-        {/* Speech bubble */}
-        <div className="w-full mb-6">
-          <SpeechBubble>Welcome back, fellow meditator 🙏</SpeechBubble>
-        </div>
-
-        {/* Mascot */}
-        <div className="mb-8">
-          <MonkyMascot size={110} />
-        </div>
-
         {/* Email input */}
         <input
           type="email"
@@ -177,19 +167,18 @@ export function Onboarding({ onComplete }: { onComplete: () => void; startAtPaym
           {loading ? "Looking you up..." : "Log In"}
         </button>
 
-        {/* Create account link — tiny */}
+        {/* Create account link */}
         <a
           href="https://monkyapp.com"
           style={{
-            fontSize: "12px",
-            color: "rgba(255,255,255,0.3)",
+            fontSize: "13px",
+            color: "rgba(255,255,255,0.35)",
             textDecoration: "none",
-            letterSpacing: "0.2px",
           }}
         >
           No account?{" "}
-          <span style={{ color: "rgba(245,200,66,0.6)", textDecoration: "underline" }}>
-            Create one at monkyapp.com
+          <span style={{ color: "rgba(245,200,66,0.7)", textDecoration: "underline", fontWeight: 600 }}>
+            Create one
           </span>
         </a>
       </div>
