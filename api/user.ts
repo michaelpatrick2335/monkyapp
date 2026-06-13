@@ -74,32 +74,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const email = (Array.isArray(rawEmail) ? rawEmail[0] : rawEmail || "").trim().toLowerCase() || null;
 
     if (req.method === "GET") {
-      let user;
-      if (email) {
-        const existing = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
-        if (existing.rows.length > 0) {
-          user = existing.rows[0];
-          // Auto-upgrade test accounts
-          if (TEST_ACCOUNTS.includes(email) && !user.is_premium) {
-            const upd = await pool.query("UPDATE users SET is_premium = TRUE WHERE id = $1 RETURNING *", [user.id]);
-            user = upd.rows[0];
-          }
-        } else {
-          const isPremium = TEST_ACCOUNTS.includes(email);
-          const r = await pool.query(
-            `INSERT INTO users (email, is_premium) VALUES ($1, $2) RETURNING *`,
-            [email, isPremium]
-          );
-          user = r.rows[0];
-        }
-      } else {
-        const r = await pool.query("SELECT * FROM users WHERE email IS NULL ORDER BY id LIMIT 1");
-        if (r.rows.length > 0) {
-          user = r.rows[0];
-        } else {
-          const r2 = await pool.query("INSERT INTO users DEFAULT VALUES RETURNING *");
-          user = r2.rows[0];
-        }
+      // No email = not logged in → return null so app shows login screen
+      if (!email) return res.status(401).json({ error: "Not authenticated" });
+
+      const existing = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+      if (existing.rows.length === 0) return res.status(404).json({ error: "User not found" });
+
+      let user = existing.rows[0];
+      // Auto-upgrade test accounts
+      if (TEST_ACCOUNTS.includes(email) && !user.is_premium) {
+        const upd = await pool.query("UPDATE users SET is_premium = TRUE WHERE id = $1 RETURNING *", [user.id]);
+        user = upd.rows[0];
       }
       return res.json(rowToUser(user));
     }
