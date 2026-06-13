@@ -119,7 +119,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
     }
     stopMusicPreview();
     setPreviewingTrackId(trackId);
-    const audio = new Audio(`./audio/${trackId}.mp3`);
+    const audio = new Audio(`https://monky.pplx.app/app/audio/${trackId}.mp3`);
     audio.volume = 1.0;
     audio.play().catch(() => {});
     audio.onended = () => setPreviewingTrackId(null);
