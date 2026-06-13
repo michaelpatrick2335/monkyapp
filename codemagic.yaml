@@ -1,0 +1,78 @@
+workflows:
+  ios-monky-workflow:
+    name: Monky iOS Build
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: codemagic
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.monkyapp.meditation
+      vars:
+        APP_ID: com.monkyapp.meditation
+        VITE_NATIVE_BUILD: "1"
+        VITE_API_BASE_URL: "https://www.monkyapp.com"
+      node: 22.11.0
+      xcode: latest
+      cocoapods: default
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+    scripts:
+      - name: Install npm dependencies
+        script: |
+          npm ci || npm install
+      - name: Build web client (native mode)
+        script: |
+          VITE_NATIVE_BUILD=1 VITE_API_BASE_URL=https://www.monkyapp.com npx tsx script/build.ts
+      - name: Add iOS platform (first run only)
+        script: |
+          if [ ! -d "ios" ]; then
+            npx cap add ios
+          fi
+      - name: Sync Capacitor iOS
+        script: |
+          npx cap sync ios
+      - name: Set up code signing
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$APP_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Increment build number
+        script: |
+          cd ios/App
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APP_ID" 2>/dev/null || echo "0")
+          NEW_BUILD_NUMBER=$(($LATEST_BUILD_NUMBER + 1))
+          agvtool new-version -all $NEW_BUILD_NUMBER
+      - name: Build iOS archive
+        script: |
+          cd ios/App
+          xcode-project build-ipa \
+            --workspace App.xcworkspace \
+            --scheme App
+    artifacts:
+      - ios/App/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        # Auto-upload to TestFlight (lets you install on your iPhone)
+        submit_to_testflight: true
+        beta_groups:
+          - Internal Testers
+        # Set to true once we're ready to submit for App Store review
+        submit_to_app_store: false
+      email:
+        recipients:
+          - michaelpatrick2335@gmail.com
+        notify:
+          success: true
+          failure: true
