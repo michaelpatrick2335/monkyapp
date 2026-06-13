@@ -63,12 +63,11 @@ export function MeditationTimer({ durationSeconds, onComplete, onCancel, customM
     setPhase("meditating");
 
     const isBuiltin = !customMusicTrackId || BUILTIN_TRACKS.some(t => t.id === customMusicTrackId);
-    // Audio hosted on pplx.app backend (too large for Vercel/GitHub)
-    const AUDIO_BASE = "https://monky.pplx.app/port/5000";
+    // Audio served from pplx.app S3 static files
     const trackId = isBuiltin ? (customMusicTrackId || "bliss") : null;
     const trackUrl = trackId
-      ? `${AUDIO_BASE}/audio/${trackId}.mp3`
-      : `${API_BASE}/api/music/${customMusicTrackId}`;
+      ? `https://monky.pplx.app/app/audio/${trackId}.mp3`
+      : `https://monky.pplx.app/port/5000/api/music/${customMusicTrackId}`;
 
     const audio = new Audio(trackUrl);
     audio.loop = true;
