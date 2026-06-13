@@ -17,10 +17,20 @@
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🐒</text></svg>" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/app/manifest.json" />
+    <link rel="apple-touch-icon" href="/app/monky_logo_transparent.png" />
+    <meta name="apple-mobile-web-app-title" content="MONKy" />
     <script type="module" crossorigin src="/app/assets/app-CqaCoxeP.js"></script>
     <link rel="stylesheet" crossorigin href="/app/assets/app-CTDncgLe.css">
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/app/sw.js', { scope: '/app/' });
+      }
+    </script>
   </body>
 </html>
