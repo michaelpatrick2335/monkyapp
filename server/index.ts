@@ -24,6 +24,20 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
+// CORS — allow monkyapp.com to load audio and API
+app.use((req, res, next) => {
+  const allowed = ["https://monkyapp.com", "https://www.monkyapp.com", "https://monkyapp.vercel.app"];
+  const origin = req.headers.origin || "";
+  if (allowed.includes(origin) || !origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin || "*");
+  }
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
