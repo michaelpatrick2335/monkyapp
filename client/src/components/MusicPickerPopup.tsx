@@ -20,7 +20,7 @@ export function MusicPickerPopup({ initialTrackId, onConfirm, onClose }: MusicPi
       return;
     }
     audioRef.current?.pause();
-    const audio = new Audio(`./audio/${id}.mp3`);
+    const audio = new Audio(`https://monky.pplx.app/app/audio/${id}.mp3`);
     audio.volume = 1.0;
     audio.play().catch(() => {});
     audio.onended = () => setPlayingId(null);
@@ -48,7 +48,7 @@ export function MusicPickerPopup({ initialTrackId, onConfirm, onClose }: MusicPi
     >
       <div
         className="relative w-full max-w-sm rounded-3xl px-5 pt-7 pb-6"
-        style={{ background: "#1a1c2a", border: "1.5px solid rgba(245,200,66,0.4)" }}
+        style={{ background: "#1a1c2a", border: "1.5px solid rgba(245,200,66,0.4)", maxHeight: "85dvh", overflowY: "auto" }}
       >
         {/* Close */}
         <button
