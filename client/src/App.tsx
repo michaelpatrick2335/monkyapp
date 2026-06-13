@@ -34,14 +34,14 @@ function AppContent() {
   }
 
   // First-ever login: show experience picker
-  // Condition: no sessions yet AND hasn't picked this session
-  // totalSessions === 0 is the DB source of truth; localStorage prevents re-showing after they pick
+  // hasPickedExperience() is the source of truth — set immediately on tap, before any API call
   const needsExperiencePick = user.totalSessions === 0 && !hasPickedExperience();
   if (needsExperiencePick) {
     return (
       <ExperiencePicker
         onComplete={() => {
-          queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+          // Cache already updated optimistically in ExperiencePicker — just force re-render
+          queryClient.setQueryData(["/api/user"], (old: any) => ({ ...old }));
         }}
       />
     );

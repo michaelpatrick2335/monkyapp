@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { apiRequest, markExperiencePicked } from "@/lib/queryClient";
+import { apiRequest, markExperiencePicked, queryClient } from "@/lib/queryClient";
 import monkyCircle from "@/assets/monkey_circle.jpeg";
 
 interface ExperiencePickerProps {
@@ -50,24 +50,18 @@ export function ExperiencePicker({ onComplete }: ExperiencePickerProps) {
     if (selected === null) return;
     const opt = OPTIONS[selected];
     setLoading(true);
-    // Always advance after 4s max — never get stuck
-    const fallback = setTimeout(() => {
-      markExperiencePicked();
-      onComplete();
-    }, 4000);
-    try {
-      await apiRequest("PATCH", "/api/user", {
-        tier: opt.tier,
-        level: opt.level,
-      });
-      clearTimeout(fallback);
-      markExperiencePicked();
-      onComplete();
-    } catch {
-      clearTimeout(fallback);
-      markExperiencePicked();
-      onComplete();
-    }
+    // Mark picked immediately so even if API fails we never get stuck
+    markExperiencePicked();
+    // Optimistically update the cache so App.tsx re-renders straight to Dashboard
+    // without a loading flash or re-fetch
+    queryClient.setQueryData(["/api/user"], (old: any) => ({
+      ...old,
+      tier: opt.tier,
+      level: opt.level,
+    }));
+    // Fire-and-forget the API save — don't await it
+    apiRequest("PATCH", "/api/user", { tier: opt.tier, level: opt.level }).catch(() => {});
+    onComplete();
   };
 
   return (
@@ -204,7 +198,7 @@ export function ExperiencePicker({ onComplete }: ExperiencePickerProps) {
             boxShadow: selected !== null ? "0 6px 24px rgba(245,200,66,0.3)" : "none",
           }}
         >
-          {loading ? "Setting up..." : "Start My Journey →"}
+          {loading ? "Entering temple..." : "Start My Journey →"}
         </button>
       </div>
     </div>
