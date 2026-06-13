@@ -3,32 +3,111 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist/public",
   "functions": {
-    "api/handler.ts": { "runtime": "nodejs20.x", "maxDuration": 30 },
-    "api/user.ts": { "runtime": "nodejs20.x", "maxDuration": 30 }
+    "api/handler.ts": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 30
+    },
+    "api/user.ts": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 30
+    },
+    "api/health.ts": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 10
+    }
   },
   "rewrites": [
-    { "source": "/api/login", "destination": "/api/handler" },
-    { "source": "/api/unlock", "destination": "/api/handler" },
-    { "source": "/api/logout", "destination": "/api/handler" },
-    { "source": "/api/sessions", "destination": "/api/handler" },
-    { "source": "/api/session-complete", "destination": "/api/handler" },
-    { "source": "/api/session/complete", "destination": "/api/handler" },
-    { "source": "/api/challenge-complete", "destination": "/api/handler" },
-    { "source": "/api/challenge/complete", "destination": "/api/handler" },
-    { "source": "/api/change-level", "destination": "/api/handler" },
-    { "source": "/api/music", "destination": "/api/handler" },
-    { "source": "/api/music-active", "destination": "/api/handler" },
-    { "source": "/api/music/active", "destination": "/api/handler" },
-    { "source": "/api/voice", "destination": "/api/handler" },
-    { "source": "/api/stripe-setup-intent", "destination": "/api/handler" },
-    { "source": "/api/stripe/setup-intent", "destination": "/api/handler" },
-    { "source": "/api/stripe-confirm-subscription", "destination": "/api/handler" },
-    { "source": "/api/stripe/confirm-subscription", "destination": "/api/handler" },
-    { "source": "/api/stripe-create-subscription", "destination": "/api/handler" },
-    { "source": "/api/stripe/create-subscription", "destination": "/api/handler" },
-    { "source": "/app/sw.js", "destination": "/app/sw.js" },
-    { "source": "/app/manifest.json", "destination": "/app/manifest.json" },
-    { "source": "/app/:path*", "destination": "/app/index.html" },
-    { "source": "/app", "destination": "/app/index.html" }
+    {
+      "source": "/api/login",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/api/unlock",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/api/logout",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/api/sessions",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/api/session-complete",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/api/session/complete",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/api/challenge-complete",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/api/challenge/complete",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/api/change-level",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/api/music",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/api/music-active",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/api/music/active",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/api/voice",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/api/stripe-setup-intent",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/api/stripe/setup-intent",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/api/stripe-confirm-subscription",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/api/stripe/confirm-subscription",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/api/stripe-create-subscription",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/api/stripe/create-subscription",
+      "destination": "/api/handler"
+    },
+    {
+      "source": "/app/sw.js",
+      "destination": "/app/sw.js"
+    },
+    {
+      "source": "/app/manifest.json",
+      "destination": "/app/manifest.json"
+    },
+    {
+      "source": "/app/:path*",
+      "destination": "/app/index.html"
+    },
+    {
+      "source": "/app",
+      "destination": "/app/index.html"
+    }
   ]
 }
