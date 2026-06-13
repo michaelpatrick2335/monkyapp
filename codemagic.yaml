@@ -41,6 +41,11 @@ workflows:
       - name: Set up code signing
         script: |
           keychain initialize
+          # Auto-create distribution certificate if none exists in the account
+          app-store-connect certificates create \
+            --type IOS_DISTRIBUTION \
+            --save || echo "Cert may already exist, continuing"
+          # Fetch (and create if missing) the App Store provisioning profile for our bundle id
           app-store-connect fetch-signing-files "$APP_ID" \
             --type IOS_APP_STORE \
             --create
@@ -49,9 +54,8 @@ workflows:
       - name: Increment build number
         script: |
           cd ios/App
-          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APP_ID" 2>/dev/null || echo "0")
-          NEW_BUILD_NUMBER=$(($LATEST_BUILD_NUMBER + 1))
-          agvtool new-version -all $NEW_BUILD_NUMBER
+          # Use CM_BUILD_NUMBER which Codemagic auto-increments per build
+          agvtool new-version -all ${BUILD_NUMBER:-1}
       - name: Build iOS archive
         script: |
           cd ios/App
