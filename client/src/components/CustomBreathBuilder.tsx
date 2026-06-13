@@ -10,10 +10,10 @@ const EMOJIS = ["🌬️","🔷","🌀","🌊","🔥","⭐","🌙","🏔️","�
 
 // Phases that can have a voice cue
 const VOICE_PHASES = [
-  { key: "inhale",    label: "Inhale voice" },
-  { key: "holdIn",   label: "Hold (in) voice" },
-  { key: "exhale",   label: "Exhale voice" },
-  { key: "holdOut",  label: "Hold (out) voice" },
+  { key: "inhale",   label: "Inhale",             alwaysShow: true  },
+  { key: "holdIn",  label: "Hold (after inhale)", alwaysShow: true  },
+  { key: "exhale",  label: "Exhale",              alwaysShow: true  },
+  { key: "holdOut", label: "Hold (after exhale)", alwaysShow: true  },
 ];
 
 function StepPicker({ label, value, onChange, min = 0, max = 20 }: {
@@ -56,7 +56,7 @@ function VoiceRow({ exerciseId, phaseKey, phaseLabel, phaseValue }: {
   const chunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (phaseValue === 0) return null; // phase is skipped, no voice needed
+  const phaseSkipped = phaseValue === 0;
 
   async function startRecord() {
     try {
@@ -110,16 +110,18 @@ function VoiceRow({ exerciseId, phaseKey, phaseLabel, phaseValue }: {
   return (
     <div className="flex items-center justify-between py-2 px-3 rounded-xl"
       style={{
-        background: hasVoice ? "rgba(74,222,128,0.05)" : "rgba(255,255,255,0.03)",
-        border: `1.5px solid ${hasVoice ? "rgba(74,222,128,0.2)" : "rgba(255,255,255,0.07)"}`,
+        background: phaseSkipped ? "rgba(255,255,255,0.02)" : hasVoice ? "rgba(74,222,128,0.05)" : "rgba(255,255,255,0.03)",
+        border: `1.5px solid ${phaseSkipped ? "rgba(255,255,255,0.05)" : hasVoice ? "rgba(74,222,128,0.2)" : "rgba(255,255,255,0.07)"}`,
+        opacity: phaseSkipped ? 0.5 : 1,
       }}>
       <div>
         <p className="text-xs font-display font-bold" style={{ color: hasVoice ? "#4ade80" : "var(--muted-foreground)" }}>
           {phaseLabel}
         </p>
-        {status === "recorded" && <p className="text-xs" style={{ color: "#4ade80" }}>✓ Saved</p>}
-        {status === "error" && <p className="text-xs" style={{ color: "#f87171" }}>Mic access denied</p>}
-        {recording && <p className="text-xs" style={{ color: "#f87171" }}>● Recording…</p>}
+        {phaseSkipped && <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>phase off — set seconds above to enable</p>}
+        {!phaseSkipped && status === "recorded" && <p className="text-xs" style={{ color: "#4ade80" }}>✓ Saved</p>}
+        {!phaseSkipped && status === "error" && <p className="text-xs" style={{ color: "#f87171" }}>Mic access denied</p>}
+        {!phaseSkipped && recording && <p className="text-xs" style={{ color: "#f87171" }}>● Recording…</p>}
       </div>
       <div className="flex items-center gap-1.5">
         {/* Preview */}
@@ -142,8 +144,9 @@ function VoiceRow({ exerciseId, phaseKey, phaseLabel, phaseValue }: {
         {!recording ? (
           <button
             onClick={startRecord}
+            disabled={phaseSkipped}
             className="px-2.5 py-1 rounded-lg text-xs font-display font-bold transition-all active:scale-95"
-            style={{ background: "rgba(245,200,66,0.15)", color: "var(--color-gold)", border: "1px solid rgba(245,200,66,0.3)" }}
+            style={{ background: "rgba(245,200,66,0.15)", color: "var(--color-gold)", border: "1px solid rgba(245,200,66,0.3)", opacity: phaseSkipped ? 0.35 : 1 }}
           >🎙 Record</button>
         ) : (
           <button
@@ -157,8 +160,9 @@ function VoiceRow({ exerciseId, phaseKey, phaseLabel, phaseValue }: {
           onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); e.target.value = ""; }} />
         <button
           onClick={() => fileInputRef.current?.click()}
+          disabled={phaseSkipped}
           className="px-2.5 py-1 rounded-lg text-xs font-display font-bold transition-all active:scale-95"
-          style={{ background: "rgba(255,255,255,0.07)", color: "var(--muted-foreground)", border: "1px solid rgba(255,255,255,0.1)" }}
+          style={{ background: "rgba(255,255,255,0.07)", color: "var(--muted-foreground)", border: "1px solid rgba(255,255,255,0.1)", opacity: phaseSkipped ? 0.35 : 1 }}
         >↑ File</button>
       </div>
     </div>
