@@ -1,7 +1,39 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { Pool } from "pg";
+import { sql } from "@vercel/postgres";
 
 const TEST_ACCOUNTS = ["mdore06@gmail.com", "michaelpatrick2335@gmail.com"];
+
+async function ensureTables() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY, email TEXT UNIQUE,
+      name TEXT NOT NULL DEFAULT 'Seeker', tier TEXT NOT NULL DEFAULT 'newbie',
+      level INTEGER NOT NULL DEFAULT 1, bananas INTEGER NOT NULL DEFAULT 0,
+      total_sessions INTEGER NOT NULL DEFAULT 0, total_seconds_meditated INTEGER NOT NULL DEFAULT 0,
+      streak_days INTEGER NOT NULL DEFAULT 0, last_session_date TEXT,
+      is_premium BOOLEAN NOT NULL DEFAULT FALSE, free_sessions_used INTEGER NOT NULL DEFAULT 0,
+      profile_pic TEXT, active_music_track TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS meditation_sessions (
+      id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, level INTEGER NOT NULL,
+      tier TEXT NOT NULL, duration_seconds INTEGER NOT NULL, completed_at TEXT NOT NULL,
+      bananas_earned INTEGER NOT NULL DEFAULT 1
+    )
+  `;
+}
+
+function rowToUser(row: any) {
+  return {
+    id: row.id, email: row.email ?? null, name: row.name, tier: row.tier,
+    level: row.level, bananas: row.bananas, totalSessions: row.total_sessions,
+    totalSecondsMediated: row.total_seconds_meditated, streakDays: row.streak_days,
+    lastSessionDate: row.last_session_date ?? null, isPremium: row.is_premium,
+    freeSessionsUsed: row.free_sessions_used, profilePic: row.profile_pic ?? null,
+    activeMusicTrack: row.active_music_track ?? null,
+  };
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -10,53 +42,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  let pool: Pool | null = null;
   try {
-    const connStr = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-    if (!connStr) return res.status(500).json({ error: "DATABASE_URL not set" });
-
-    pool = new Pool({ connectionString: connStr, ssl: { rejectUnauthorized: false } });
-
-    // Create tables
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY, email TEXT UNIQUE,
-        name TEXT NOT NULL DEFAULT 'Seeker', tier TEXT NOT NULL DEFAULT 'newbie',
-        level INTEGER NOT NULL DEFAULT 1, bananas INTEGER NOT NULL DEFAULT 0,
-        total_sessions INTEGER NOT NULL DEFAULT 0, total_seconds_meditated INTEGER NOT NULL DEFAULT 0,
-        streak_days INTEGER NOT NULL DEFAULT 0, last_session_date TEXT,
-        is_premium BOOLEAN NOT NULL DEFAULT FALSE, free_sessions_used INTEGER NOT NULL DEFAULT 0,
-        profile_pic TEXT, active_music_track TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-      CREATE TABLE IF NOT EXISTS meditation_sessions (
-        id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, level INTEGER NOT NULL,
-        tier TEXT NOT NULL, duration_seconds INTEGER NOT NULL, completed_at TEXT NOT NULL,
-        bananas_earned INTEGER NOT NULL DEFAULT 1
-      );
-    `);
-
+    await ensureTables();
     const email = ((req.body?.email as string) || "").trim().toLowerCase();
     if (!email) return res.status(400).json({ error: "Email required" });
 
-    const r = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
-    if (r.rows.length === 0) return res.status(404).json({ error: "No account found with that email" });
+    const { rows } = await sql`SELECT * FROM users WHERE email = ${email}`;
+    if (rows.length === 0) return res.status(404).json({ error: "No account found with that email" });
 
-    let user = r.rows[0];
+    let user = rows[0];
     if (TEST_ACCOUNTS.includes(email) && !user.is_premium) {
-      const upd = await pool.query("UPDATE users SET is_premium = TRUE WHERE id = $1 RETURNING *", [user.id]);
-      user = upd.rows[0];
+      const { rows: upd } = await sql`UPDATE users SET is_premium = TRUE WHERE id = ${user.id} RETURNING *`;
+      user = upd[0];
     }
-
-    return res.json({
-      id: user.id, email: user.email, name: user.name, tier: user.tier, level: user.level,
-      bananas: user.bananas, totalSessions: user.total_sessions, totalSecondsMediated: user.total_seconds_meditated,
-      streakDays: user.streak_days, lastSessionDate: user.last_session_date, isPremium: user.is_premium,
-      freeSessionsUsed: user.free_sessions_used, profilePic: user.profile_pic, activeMusicTrack: user.active_music_track
-    });
+    return res.json(rowToUser(user));
   } catch (e: any) {
-    console.error("login error:", e);
-    return res.status(500).json({ error: e.message, type: e.constructor?.name, stack: e.stack?.substring(0, 300) });
-  } finally {
-    if (pool) await pool.end().catch(() => {});
+    return res.status(500).json({ error: e.message, type: e.constructor?.name });
   }
 }
