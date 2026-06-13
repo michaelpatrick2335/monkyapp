@@ -1,6 +1,6 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
-import { rm, readFile, copyFile, mkdir } from "node:fs/promises";
+import { rm, readFile, copyFile, mkdir, readdir } from "node:fs/promises";
 
 // server deps to bundle to reduce openat(2) syscalls
 // which helps cold start times
@@ -42,6 +42,15 @@ async function buildAll() {
 
   // Rename app/app.html -> app/index.html so Vercel serves it at /app
   await copyFile("dist/public/app/app.html", "dist/public/app/index.html");
+
+  // Copy audio files to dist/public/audio/ for static serving
+  console.log("copying audio files...");
+  await mkdir("dist/public/audio", { recursive: true });
+  const audioFiles = await readdir("client/public/audio");
+  for (const file of audioFiles) {
+    await copyFile(`client/public/audio/${file}`, `dist/public/audio/${file}`);
+  }
+  console.log(`copied ${audioFiles.length} audio files`);
 
   console.log("building server...");
   const pkg = JSON.parse(await readFile("package.json", "utf-8"));

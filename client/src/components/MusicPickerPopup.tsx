@@ -20,7 +20,7 @@ export function MusicPickerPopup({ initialTrackId, onConfirm, onClose }: MusicPi
       return;
     }
     audioRef.current?.pause();
-    const audio = new Audio(`https://monky.pplx.app/app/audio/${id}.mp3`);
+    const audio = new Audio(`/audio/${id}.mp3`);
     audio.volume = 1.0;
     audio.play().catch(() => {});
     audio.onended = () => setPlayingId(null);

@@ -119,7 +119,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
     }
     stopMusicPreview();
     setPreviewingTrackId(trackId);
-    const audio = new Audio(`https://monky.pplx.app/app/audio/${trackId}.mp3`);
+    const audio = new Audio(`/audio/${trackId}.mp3`);
     audio.volume = 1.0;
     audio.play().catch(() => {});
     audio.onended = () => setPreviewingTrackId(null);
@@ -537,7 +537,8 @@ export function Dashboard({ onLogout }: DashboardProps) {
       {/* Meditate CTA */}
       <button
         onClick={() => {
-            if (user.totalSessions === 0) {
+            // Show music picker on very first meditation OR if they never picked a track
+            if (user.totalSessions === 0 || !user.activeMusicTrack) {
               setShowMusicPicker(true);
             } else {
               setMeditating(true);
