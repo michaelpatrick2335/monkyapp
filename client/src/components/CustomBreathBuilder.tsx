@@ -20,7 +20,7 @@ function StepPicker({ label, value, onChange, min = 0, max = 20 }: {
           style={{ background: "rgba(255,255,255,0.1)", color: "var(--foreground)" }}
         >−</button>
         <span className="font-display font-bold text-base w-8 text-center" style={{ color: "var(--color-gold)" }}>
-          {value === 0 ? "—" : `${value}s`}
+          {value === 0 ? "—" : label === "Rounds" ? `${value}` : `${value}s`}
         </span>
         <button
           onClick={() => onChange(Math.min(max, value + 1))}
