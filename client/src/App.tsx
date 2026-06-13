@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Onboarding } from "@/pages/Onboarding";
 import { Dashboard } from "@/pages/Dashboard";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { Toaster } from "@/components/ui/toaster";
 import type { User } from "@shared/schema";
 import paymentBg from "@/assets/payment_bg.jpeg";
@@ -58,6 +59,17 @@ function AppContent() {
     }
     return false;
   });
+  const [showInstallPrompt, setShowInstallPrompt] = useState(() => {
+    const search = window.location.search;
+    const hash = window.location.hash;
+    const fromQuery = new URLSearchParams(search).get("start") === "fresh";
+    const fromHash = hash.includes("start=fresh");
+    // Show install prompt when coming from landing page
+    // but not if already running as installed PWA
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches
+      || (window.navigator as any).standalone === true;
+    return (fromQuery || fromHash) && !isStandalone;
+  });
   const [stripeSuccess, setStripeSuccess] = useState(() => {
     // Check if Stripe redirected back with ?stripe=success
     return window.location.search.includes("stripe=success") || window.location.hash.includes("stripe=success");
@@ -77,6 +89,11 @@ function AppContent() {
     refetchOnWindowFocus: true,
     staleTime: 0,
   });
+
+  // Show install prompt first when coming from landing page
+  if (showInstallPrompt) {
+    return <InstallPrompt onDone={() => setShowInstallPrompt(false)} />;
+  }
 
   // Show success screen right after Stripe redirects back
   if (stripeSuccess) {
