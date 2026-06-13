@@ -6,9 +6,11 @@ workflows:
     integrations:
       app_store_connect: codemagic
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.monkyapp.meditation
+      # NOTE: We intentionally DO NOT use the ios_signing block here.
+      # That block requires an existing distribution certificate and profile
+      # in the Apple account, but this is the first iOS build ever so neither
+      # exists yet. Instead, the "Set up code signing" script step below uses
+      # codemagic-cli-tools to create the cert + profile from scratch.
       vars:
         APP_ID: com.monkyapp.meditation
         VITE_NATIVE_BUILD: "1"
@@ -38,23 +40,32 @@ workflows:
       - name: Sync Capacitor iOS
         script: |
           npx cap sync ios
-      - name: Set up code signing
+      - name: Set up code signing (creates cert + profile if missing)
         script: |
+          set -e
           keychain initialize
-          # Auto-create distribution certificate if none exists in the account
+
+          # Step 1: Create iOS distribution certificate if none exists.
+          # codemagic-cli-tools will skip silently if a usable cert is already there.
+          echo "Ensuring iOS distribution certificate exists..."
           app-store-connect certificates create \
             --type IOS_DISTRIBUTION \
-            --save || echo "Cert may already exist, continuing"
-          # Fetch (and create if missing) the App Store provisioning profile for our bundle id
+            --save \
+            --p12-password "${CM_KEYCHAIN_PASSWORD:-codemagic}" || \
+            echo "Certificate creation step finished (may already exist)"
+
+          # Step 2: Fetch or create the App Store provisioning profile for our bundle id.
+          echo "Fetching/creating App Store profile for $APP_ID..."
           app-store-connect fetch-signing-files "$APP_ID" \
             --type IOS_APP_STORE \
             --create
+
+          # Step 3: Add fetched certs + profiles to the keychain & Xcode.
           keychain add-certificates
           xcode-project use-profiles
       - name: Increment build number
         script: |
           cd ios/App
-          # Use CM_BUILD_NUMBER which Codemagic auto-increments per build
           agvtool new-version -all ${BUILD_NUMBER:-1}
       - name: Build iOS archive
         script: |
@@ -68,11 +79,9 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-        # Auto-upload to TestFlight (lets you install on your iPhone)
+        # Auto-upload to TestFlight so we can install on the iPhone
         submit_to_testflight: true
-        beta_groups:
-          - Internal Testers
-        # Set to true once we're ready to submit for App Store review
+        # Don't submit to App Store review automatically — flip this true when ready
         submit_to_app_store: false
       email:
         recipients:
