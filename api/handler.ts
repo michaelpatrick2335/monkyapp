@@ -34,6 +34,10 @@ async function ensureTables(pool: Pool) {
       tier TEXT NOT NULL, duration_seconds INTEGER NOT NULL, completed_at TEXT NOT NULL,
       bananas_earned INTEGER NOT NULL DEFAULT 1
     );
+    CREATE TABLE IF NOT EXISTS journal_entries (
+      id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, level INTEGER NOT NULL,
+      tier TEXT NOT NULL, entry TEXT NOT NULL, created_at TEXT NOT NULL
+    );
   `);
 }
 
