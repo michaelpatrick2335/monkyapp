@@ -82,9 +82,11 @@ export function Onboarding({ onComplete }: { onComplete: () => void; startAtPaym
       });
       const data = await res.json();
 
-      if (res.ok && data.user) {
+      // Login returns the user object directly (not wrapped in { user: ... })
+      const userData = data.user ?? data;
+      if (res.ok && userData?.isPremium !== undefined) {
         setUserEmail(trimmed);
-        queryClient.setQueryData(["/api/user"], data.user);
+        queryClient.setQueryData(["/api/user"], userData);
         onComplete();
       } else {
         setError(data.error || "No account found. Sign up at monkyapp.com");
