@@ -104,41 +104,32 @@ workflows:
           # Sanity check: confirm the cert+key pair is paired and ready.
           security find-identity -v -p codesigning
 
-          # Find the SHA-1 fingerprint of the cert we just added to the keychain.
-          # We'll need this to match against the Apple-side cert.
-          CERT_SHA1=$(openssl pkcs12 -in /tmp/distribution_cert.p12 \
-            -passin pass:"$IOS_CERTIFICATE_PASSWORD" -nokeys -clcerts 2>/dev/null | \
-            openssl x509 -noout -fingerprint -sha1 2>/dev/null | \
-            cut -d= -f2 | tr -d ':')
-          echo "Local cert SHA-1: $CERT_SHA1"
+          # The cert in Apple has type DISTRIBUTION (not IOS_DISTRIBUTION).
+          # Get its ID so we can attach it to a new profile.
+          echo "Looking up Apple cert ID..."
+          CERT_ID=$(app-store-connect certificates list --type DISTRIBUTION --json 2>/dev/null | \
+            python3 -c "import json,sys; certs=json.load(sys.stdin); print(certs[0]['id'])" 2>/dev/null)
+          echo "Apple cert ID: $CERT_ID"
 
-          # List existing Apple certificates to find the matching one.
-          echo "Listing Apple certificates:"
-          app-store-connect certificates list --type IOS_DISTRIBUTION || \
-          app-store-connect certificates list --type DISTRIBUTION
+          # Look up the bundle ID resource ID in Apple (needed for profiles create).
+          BUNDLE_ID_RESOURCE=$(app-store-connect bundle-ids list --bundle-id-identifier "$APP_ID" --json 2>/dev/null | \
+            python3 -c "import json,sys; b=json.load(sys.stdin); print(b[0]['id'])" 2>/dev/null)
+          echo "Apple bundle resource ID: $BUNDLE_ID_RESOURCE"
 
-          # Try to fetch existing profiles for this bundle ID. If none exist,
-          # create one matching our distribution cert.
-          echo "Fetching App Store profiles for $APP_ID..."
-          app-store-connect fetch-signing-files "$APP_ID" --type IOS_APP_STORE || {
-            echo "No matching profile found, creating one..."
-            # Get the certificate ID from Apple that matches our keychain cert
-            CERT_ID=$(app-store-connect certificates list --type DISTRIBUTION \
-              --json 2>/dev/null | python3 -c "import json,sys; certs=json.load(sys.stdin); print(certs[0]['id'])" 2>/dev/null) || \
-            CERT_ID=$(app-store-connect certificates list --type IOS_DISTRIBUTION \
-              --json 2>/dev/null | python3 -c "import json,sys; certs=json.load(sys.stdin); print(certs[0]['id'])" 2>/dev/null)
-            echo "Using Apple cert ID: $CERT_ID"
-            
+          # Try fetching an existing profile for this bundle ID first.
+          echo "Fetching existing App Store profiles for $APP_ID..."
+          if ! app-store-connect fetch-signing-files "$APP_ID" --type IOS_APP_STORE; then
+            echo "No matching profile found. Creating a new App Store profile..."
             app-store-connect profiles create \
               --name "Monky App Store $(date +%s)" \
               --type IOS_APP_STORE \
-              --bundle-id "$APP_ID" \
-              --certificate "$CERT_ID" \
-              --save
-            
-            # Now fetch the profile we just created
+              --certificate-ids "$CERT_ID" \
+              --save \
+              "$BUNDLE_ID_RESOURCE"
+
+            echo "Re-fetching signing files now that a profile exists..."
             app-store-connect fetch-signing-files "$APP_ID" --type IOS_APP_STORE
-          }
+          fi
 
           # Apply profiles to the Xcode project.
           xcode-project use-profiles
