@@ -6,11 +6,16 @@ workflows:
     integrations:
       app_store_connect: codemagic
     environment:
-      # NOTE: We intentionally DO NOT use the ios_signing block here.
-      # That block requires an existing distribution certificate and profile
-      # in the Apple account, but this is the first iOS build ever so neither
-      # exists yet. Instead, the "Set up code signing" script step below uses
-      # codemagic-cli-tools to create the cert + profile from scratch.
+      # Build #10 already created the iOS Distribution certificate and the
+      # App Store provisioning profile in Apple Developer Portal. Apple limits
+      # us to 2 active Distribution certs per team, so we MUST reuse the
+      # existing one instead of creating a new one every build (otherwise
+      # we get HTTP 409 "You already have a current Distribution certificate").
+      # The ios_signing block tells Codemagic to fetch the EXISTING cert +
+      # profile from App Store Connect via the integration and use them.
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.monkyapp.meditation
       vars:
         APP_ID: com.monkyapp.meditation
         VITE_NATIVE_BUILD: "1"
@@ -77,36 +82,16 @@ workflows:
             rm -f ios/App/Podfile ios/App/Podfile.lock
             rm -rf ios/App/Pods ios/App/App.xcworkspace
           fi
-      - name: Set up code signing (creates cert + profile if missing)
+      - name: Set up code signing
         script: |
           set -e
-          keychain initialize
-
-          # Step 1: Generate a fresh RSA private key for the iOS distribution certificate.
-          # Apple Developer accounts that have never had an iOS cert need this seeded.
-          # ssh-keygen writes both public and private to the path; we want only the private (PEM) file.
-          PRIVATE_KEY_PATH="/tmp/ios_distribution_cert.key"
-          if [ ! -f "$PRIVATE_KEY_PATH" ]; then
-            echo "Generating private key for distribution certificate..."
-            ssh-keygen -t rsa -b 2048 -m PEM -f "$PRIVATE_KEY_PATH" -q -N ""
-          fi
-          # Sanity check the file exists and is readable
-          ls -la "$PRIVATE_KEY_PATH"
-          head -1 "$PRIVATE_KEY_PATH"
-
-          # Step 2: fetch-signing-files with --create + --certificate-key will
-          # auto-create BOTH the distribution certificate AND the provisioning
-          # profile in one shot if either is missing. The CLI requires the
-          # @file: prefix for file paths (it interprets bare strings as inline
-          # PEM content).
-          echo "Fetching/creating cert + App Store profile for $APP_ID..."
-          app-store-connect fetch-signing-files "$APP_ID" \
-            --type IOS_APP_STORE \
-            --certificate-key=@file:"$PRIVATE_KEY_PATH" \
-            --create
-
-          # Step 3: Add fetched certs + profiles to the keychain & Xcode.
-          keychain add-certificates
+          # The ios_signing block at the top of this workflow tells Codemagic
+          # to automatically fetch the EXISTING App Store Distribution cert
+          # and provisioning profile from App Store Connect before any
+          # script steps run. They are already in the keychain by the time
+          # this step executes — we just need to wire them into Xcode.
+          #
+          # No certificate creation. No fresh private keys. No 409 conflicts.
           xcode-project use-profiles
       - name: Increment build number
         script: |
