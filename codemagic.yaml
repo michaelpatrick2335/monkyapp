@@ -38,19 +38,45 @@ workflows:
           VITE_API_BASE_URL=https://www.monkyapp.com \
           VITE_REVENUECAT_IOS_KEY="$VITE_REVENUECAT_IOS_KEY" \
             npx tsx script/build.ts
-      - name: Add iOS platform (first run only)
+      - name: Add iOS platform (creates Xcode project if missing)
         script: |
-          if [ ! -d "ios" ]; then
-            npx cap add ios
+          set -e
+          # The committed ios/ dir only contains icon assets (no Xcode project),
+          # so we always run `cap add ios` when App.xcodeproj is missing.
+          # First, stash any committed assets (icons) so they survive the regen.
+          if [ -d "ios/App/App/Assets.xcassets" ] && [ ! -d "ios/App/App.xcodeproj" ]; then
+            echo "Existing ios/ has assets but no Xcode project — stashing assets and regenerating."
+            cp -R ios/App/App/Assets.xcassets /tmp/Assets.xcassets
+            rm -rf ios
+          fi
+          if [ ! -f "ios/App/App.xcodeproj/project.pbxproj" ]; then
+            # Explicitly request SPM — Capacitor 8 still requires this flag to skip
+            # the CocoaPods scaffold. Without it, cap sync will try `pod install`.
+            npx cap add ios --packagemanager SPM
+          fi
+          # Restore icon assets into the freshly-generated Xcode project.
+          if [ -d "/tmp/Assets.xcassets" ]; then
+            cp -R /tmp/Assets.xcassets/. ios/App/App/Assets.xcassets/
+            rm -rf /tmp/Assets.xcassets
           fi
       - name: Sync Capacitor iOS
         script: |
           set -e
+          # `--deployment` is NOT used for SPM projects; cap sync auto-detects SPM
+          # when there is no Podfile present. Capacitor 8 generates SPM-based
+          # projects by default.
           npx cap sync ios
           # Capacitor 8 uses Swift Package Manager (SPM) instead of CocoaPods,
           # so there is no Podfile and no App.xcworkspace. The build uses
           # App.xcodeproj directly. Verify it exists:
           ls -la ios/App/App.xcodeproj || (echo "App.xcodeproj not created!" && exit 1)
+          # If a Podfile somehow got generated (e.g. older Capacitor template),
+          # remove it so cap sync stops trying to run pod install on subsequent runs.
+          if [ -f "ios/App/Podfile" ]; then
+            echo "Removing stray Podfile to force SPM mode."
+            rm -f ios/App/Podfile ios/App/Podfile.lock
+            rm -rf ios/App/Pods ios/App/App.xcworkspace
+          fi
       - name: Set up code signing (creates cert + profile if missing)
         script: |
           set -e
