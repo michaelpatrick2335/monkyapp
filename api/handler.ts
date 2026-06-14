@@ -141,11 +141,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const loginEmail = ((req.body?.email as string) || "").trim().toLowerCase();
       if (!loginEmail) return res.status(400).json({ error: "Email required" });
       const r = await pool.query("SELECT * FROM users WHERE email = $1", [loginEmail]);
-      if (r.rows.length === 0) return res.status(404).json({ error: "No account found with that email" });
-      let user = r.rows[0];
-      if (TEST_ACCOUNTS.includes(loginEmail) && !user.is_premium) {
-        const upd = await pool.query("UPDATE users SET is_premium = TRUE WHERE id = $1 RETURNING *", [user.id]);
-        user = upd.rows[0];
+      let user;
+      if (r.rows.length === 0) {
+        // Auto-provision allow-listed test/reviewer accounts so the Apple
+        // reviewer (and our internal test accounts) can sign in on a fresh
+        // device without needing to go through the web signup flow.
+        if (TEST_ACCOUNTS.includes(loginEmail)) {
+          user = await getOrCreate(pool, loginEmail);
+          const upd = await pool.query("UPDATE users SET is_premium = TRUE WHERE id = $1 RETURNING *", [user.id]);
+          user = upd.rows[0];
+        } else {
+          return res.status(404).json({ error: "No account found with that email" });
+        }
+      } else {
+        user = r.rows[0];
+        if (TEST_ACCOUNTS.includes(loginEmail) && !user.is_premium) {
+          const upd = await pool.query("UPDATE users SET is_premium = TRUE WHERE id = $1 RETURNING *", [user.id]);
+          user = upd.rows[0];
+        }
       }
       return res.json(rowToUser(user));
     }
