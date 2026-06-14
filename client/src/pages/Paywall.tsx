@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, clearUserEmail } from "@/lib/queryClient";
 import { Capacitor } from "@capacitor/core";
 import {
   getMonthlyOffering,
@@ -237,8 +237,13 @@ export function Paywall({ onUnlock, userName }: PaywallProps) {
         )}
         <button
           onClick={async () => {
+            // Sign out locally and bounce back to the very first page (Onboarding).
+            // Clearing the stored email drops `x-user-email`, so `/api/user` returns null
+            // and App.tsx renders <Onboarding /> as the first screen.
             try { await apiRequest("POST", "/api/logout", {}); } catch {}
+            clearUserEmail();
             queryClient.clear();
+            window.location.hash = "";
             window.location.reload();
           }}
           className="underline underline-offset-4 opacity-70 hover:opacity-100 transition-opacity"
