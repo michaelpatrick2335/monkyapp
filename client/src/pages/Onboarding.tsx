@@ -2,8 +2,6 @@ import { useState } from "react";
 import { queryClient, setUserEmail, API_BASE } from "@/lib/queryClient";
 import monkyMonkeyOnly from "@/assets/monkey_circle.jpeg";
 import loginScene from "@/assets/login_scene.jpeg";
-import { Browser } from "@capacitor/browser";
-import { Capacitor } from "@capacitor/core";
 import { identifyUser } from "@/lib/iap";
 
 // ── Speech bubble ─────────────────────────────────────────────
@@ -63,11 +61,12 @@ function MonkyMascot({ size = 100 }: { size?: number }) {
 
 // ── Main Login Screen ─────────────────────────────────────────
 export function Onboarding({ onComplete }: { onComplete: () => void; startAtPayment?: boolean }) {
+  const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
+  const handleSubmit = async () => {
     const trimmed = email.trim().toLowerCase();
     if (!trimmed) { setError("Please enter your email."); return; }
     if (!trimmed.includes("@")) { setError("Enter a valid email address."); return; }
@@ -75,24 +74,32 @@ export function Onboarding({ onComplete }: { onComplete: () => void; startAtPaym
     setLoading(true);
     setError("");
 
+    const endpoint = mode === "signup" ? "/api/signup" : "/api/login";
+
     try {
-      const res = await fetch(`${API_BASE}/api/login`, {
+      const res = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: trimmed }),
       });
       const data = await res.json();
 
-      // Login returns the user object directly (not wrapped in { user: ... })
       const userData = data.user ?? data;
       if (res.ok && userData?.isPremium !== undefined) {
         setUserEmail(trimmed);
-        // Identify this email with RevenueCat so iOS purchases sync to their account.
         identifyUser(trimmed).catch(() => {});
         queryClient.setQueryData(["/api/user"], userData);
         onComplete();
       } else {
-        setError(data.error || "No account found. Sign up at monkyapp.com");
+        if (res.status === 409 && mode === "signup") {
+          setMode("login");
+          setError("An account already exists. Please log in.");
+        } else if (res.status === 404 && mode === "login") {
+          setMode("signup");
+          setError("No account found. Tap Create Account below to sign up.");
+        } else {
+          setError(data.error || "Something went wrong. Please try again.");
+        }
       }
     } catch {
       setError("Connection error. Please try again.");
@@ -135,7 +142,7 @@ export function Onboarding({ onComplete }: { onComplete: () => void; startAtPaym
           type="email"
           value={email}
           onChange={e => { setEmail(e.target.value); setError(""); }}
-          onKeyDown={e => e.key === "Enter" && handleLogin()}
+          onKeyDown={e => e.key === "Enter" && handleSubmit()}
           placeholder="your@email.com"
           className="w-full px-5 py-4 rounded-2xl text-base text-center font-display bg-secondary border border-border focus:outline-none transition-all mb-3"
           style={{ borderColor: email ? "rgba(245,200,66,0.5)" : undefined }}
@@ -157,9 +164,9 @@ export function Onboarding({ onComplete }: { onComplete: () => void; startAtPaym
           </div>
         )}
 
-        {/* Login button */}
+        {/* Primary submit button */}
         <button
-          onClick={handleLogin}
+          onClick={handleSubmit}
           disabled={loading}
           className="w-full py-4 rounded-2xl font-display font-bold text-base transition-all active:scale-95 disabled:opacity-50 mb-5"
           style={{
@@ -167,9 +174,11 @@ export function Onboarding({ onComplete }: { onComplete: () => void; startAtPaym
             color: "#1a0a00",
             boxShadow: "0 4px 20px rgba(245,200,66,0.35)",
           }}
-          data-testid="button-login-submit"
+          data-testid={mode === "signup" ? "button-signup-submit" : "button-login-submit"}
         >
-          {loading ? "Looking you up..." : "Log In"}
+          {loading
+            ? (mode === "signup" ? "Creating account..." : "Logging in...")
+            : (mode === "signup" ? "Create Account" : "Log In")}
         </button>
 
         {/* Divider */}
@@ -188,27 +197,15 @@ export function Onboarding({ onComplete }: { onComplete: () => void; startAtPaym
           }}
         >
           <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.12)" }} />
-          <span>New here?</span>
+          <span>{mode === "signup" ? "Already a member?" : "New here?"}</span>
           <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.12)" }} />
         </div>
 
-        {/* Create account button — opens monkyapp.com signup in in-app browser */}
+        {/* Switch mode button */}
         <button
-          onClick={async () => {
-            const signupUrl = "https://www.monkyapp.com/?signup=1";
-            try {
-              if (Capacitor.isNativePlatform()) {
-                await Browser.open({
-                  url: signupUrl,
-                  presentationStyle: "popover",
-                  toolbarColor: "#0d0f1a",
-                });
-              } else {
-                window.open(signupUrl, "_blank");
-              }
-            } catch {
-              window.open(signupUrl, "_blank");
-            }
+          onClick={() => {
+            setMode(mode === "signup" ? "login" : "signup");
+            setError("");
           }}
           className="w-full py-4 rounded-2xl font-display font-bold text-base transition-all active:scale-95 mb-3"
           style={{
@@ -216,15 +213,16 @@ export function Onboarding({ onComplete }: { onComplete: () => void; startAtPaym
             color: "#f5c842",
             border: "2px solid rgba(245,200,66,0.5)",
           }}
-          data-testid="button-create-account"
+          data-testid={mode === "signup" ? "button-switch-to-login" : "button-switch-to-signup"}
         >
-          Create Account
+          {mode === "signup" ? "Log In Instead" : "Create Account"}
         </button>
 
         {/* Helper text */}
         <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.5, marginTop: 4, maxWidth: 280 }}>
-          Sign up at monkyapp.com to start your free 3-day trial.
-          After signup, return here to log in.
+          {mode === "signup"
+            ? "Just your email \u2014 no password needed. Try free meditation sessions, upgrade anytime."
+            : "Enter the email you signed up with to continue your journey."}
         </p>
       </div>
     </div>

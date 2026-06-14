@@ -135,6 +135,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // ── POST /api/signup ─────────────────────────────────────────────────────
+    // In-app signup for iOS (Apple guideline 3.1.1 compliant — no payment
+    // collected here, user gets free tier + paywall for IAP later).
+    if (path === "/signup") {
+      if (method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+      const signupEmail = ((req.body?.email as string) || "").trim().toLowerCase();
+      if (!signupEmail) return res.status(400).json({ error: "Email required" });
+      if (!signupEmail.includes("@")) return res.status(400).json({ error: "Invalid email" });
+      const existing = await pool.query("SELECT id FROM users WHERE email = $1", [signupEmail]);
+      if (existing.rows.length > 0) {
+        return res.status(409).json({ error: "An account already exists with this email. Please log in." });
+      }
+      const user = await getOrCreate(pool, signupEmail);
+      return res.json(rowToUser(user));
+    }
+
     // ── POST /api/login ──────────────────────────────────────────────────────
     if (path === "/login") {
       if (method !== "POST") return res.status(405).json({ error: "Method not allowed" });

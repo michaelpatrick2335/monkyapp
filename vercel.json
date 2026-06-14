@@ -3,6 +3,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist/public",
   "rewrites": [
+    { "source": "/api/signup", "destination": "/api/handler" },
     { "source": "/api/login", "destination": "/api/handler" },
     { "source": "/api/unlock", "destination": "/api/handler" },
     { "source": "/api/logout", "destination": "/api/handler" },
