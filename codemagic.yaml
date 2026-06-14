@@ -6,16 +6,12 @@ workflows:
     integrations:
       app_store_connect: codemagic
     environment:
-      # Build #10 already created the iOS Distribution certificate and the
-      # App Store provisioning profile in Apple Developer Portal. Apple limits
-      # us to 2 active Distribution certs per team, so we MUST reuse the
-      # existing one instead of creating a new one every build (otherwise
-      # we get HTTP 409 "You already have a current Distribution certificate").
-      # The ios_signing block tells Codemagic to fetch the EXISTING cert +
-      # profile from App Store Connect via the integration and use them.
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.monkyapp.meditation
+      # NOTE: We do NOT use the ios_signing block here. That block expects
+      # the App Store Connect integration to have profiles already attached
+      # to it in Codemagic's Team settings, which they aren't. Instead, the
+      # "Set up code signing" script step below uses fetch-signing-files
+      # (WITHOUT --create) to download the existing cert + profile that
+      # Build #10 already registered in Apple Developer Portal.
       vars:
         APP_ID: com.monkyapp.meditation
         VITE_NATIVE_BUILD: "1"
@@ -82,16 +78,35 @@ workflows:
             rm -f ios/App/Podfile ios/App/Podfile.lock
             rm -rf ios/App/Pods ios/App/App.xcworkspace
           fi
-      - name: Set up code signing
+      - name: Set up code signing (creates cert + profile if missing)
         script: |
           set -e
-          # The ios_signing block at the top of this workflow tells Codemagic
-          # to automatically fetch the EXISTING App Store Distribution cert
-          # and provisioning profile from App Store Connect before any
-          # script steps run. They are already in the keychain by the time
-          # this step executes — we just need to wire them into Xcode.
+          keychain initialize
+
+          # Build #10's orphaned Distribution certificate has been revoked
+          # in Apple Developer Portal (its private key was on an ephemeral
+          # build VM and is lost forever). With the slot freed, we can now
+          # create a fresh cert + profile from scratch this build.
           #
-          # No certificate creation. No fresh private keys. No 409 conflicts.
+          # Generate a fresh RSA private key for the iOS distribution certificate.
+          PRIVATE_KEY_PATH="/tmp/ios_distribution_cert.key"
+          if [ ! -f "$PRIVATE_KEY_PATH" ]; then
+            echo "Generating private key for distribution certificate..."
+            ssh-keygen -t rsa -b 2048 -m PEM -f "$PRIVATE_KEY_PATH" -q -N ""
+          fi
+          ls -la "$PRIVATE_KEY_PATH"
+
+          # fetch-signing-files with --create + --certificate-key will
+          # auto-create BOTH the distribution certificate AND the provisioning
+          # profile in one shot if either is missing.
+          echo "Fetching/creating cert + App Store profile for $APP_ID..."
+          app-store-connect fetch-signing-files "$APP_ID" \
+            --type IOS_APP_STORE \
+            --certificate-key=@file:"$PRIVATE_KEY_PATH" \
+            --create
+
+          # Add fetched certs + profiles to the keychain & Xcode.
+          keychain add-certificates
           xcode-project use-profiles
       - name: Increment build number
         script: |
