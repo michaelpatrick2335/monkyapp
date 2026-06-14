@@ -6,12 +6,17 @@ workflows:
     integrations:
       app_store_connect: codemagic
     environment:
-      # Code signing: Codemagic stores the `monky_distribution` cert + private
-      # key (created via the Generate certificate button in personal account
-      # settings). The matching App Store profile is created on-the-fly by the
-      # "Set up code signing" script below via fetch-signing-files --create.
-      # We do NOT use Codemagic's `ios_signing` block here because that block
-      # expects a pre-stored provisioning profile, which we don't have yet.
+      # Code signing: persistent Distribution cert generated via Codemagic's
+      # `Generate certificate` button (which auto-registered a matching cert
+      # in Apple Developer Portal under team ZZCB23RNM5). The .p12 was
+      # downloaded, base64-encoded, and stored in the `ios_signing` env
+      # var group:
+      #   IOS_DISTRIBUTION_CERTIFICATE  (base64-encoded .p12, Secure)
+      #   IOS_CERTIFICATE_PASSWORD      (the cert .p12 password, Secure)
+      # Every build decodes this same .p12, so we never hit the 409
+      # "too many certificates" error again.
+      groups:
+        - ios_signing
       vars:
         APP_ID: com.monkyapp.meditation
         VITE_NATIVE_BUILD: "1"
@@ -78,24 +83,30 @@ workflows:
             rm -f ios/App/Podfile ios/App/Podfile.lock
             rm -rf ios/App/Pods ios/App/App.xcworkspace
           fi
-      - name: Set up code signing (use Codemagic-stored cert + create profile)
+      - name: Set up code signing (decode persistent cert, add to keychain, create profile)
         script: |
           set -e
           keychain initialize
 
-          # Install the Codemagic-stored `monky_distribution` cert into the
-          # build keychain. `keychain add-certificates` with no args fetches
-          # all certificates from the personal-account code signing identities
-          # store, including our monky_distribution cert + private key.
-          echo "Installing Codemagic-stored certificates into keychain..."
-          keychain add-certificates
+          # Decode the base64-encoded .p12 from the IOS_DISTRIBUTION_CERTIFICATE
+          # env var. This .p12 contains both the Apple Distribution certificate
+          # (issuer: Apple WWDR G3) AND the private key, generated together by
+          # Codemagic's `Generate certificate` button.
+          echo "Decoding persistent Distribution .p12 from env var..."
+          echo "$IOS_DISTRIBUTION_CERTIFICATE" | base64 --decode > /tmp/distribution_cert.p12
+          ls -la /tmp/distribution_cert.p12
 
-          # Sanity check: confirm the cert+key pair is present.
+          # Install the cert + private key into the build keychain.
+          keychain add-certificates \
+            --certificate /tmp/distribution_cert.p12 \
+            --certificate-password "$IOS_CERTIFICATE_PASSWORD"
+
+          # Sanity check: confirm the cert+key pair is paired and ready.
           security find-identity -v -p codesigning
 
           # Create (or fetch existing) App Store provisioning profile for
           # com.monkyapp.meditation. The cert is already in the keychain so
-          # Apple links the profile to the same cert, no new cert gets made.
+          # Apple links the profile to the same cert; no new cert is created.
           echo "Fetching/creating App Store profile for $APP_ID..."
           app-store-connect fetch-signing-files "$APP_ID" \
             --type IOS_APP_STORE \
