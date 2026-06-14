@@ -6,12 +6,13 @@ workflows:
     integrations:
       app_store_connect: codemagic
     environment:
-      # NOTE: We do NOT use the ios_signing block here. That block expects
-      # the App Store Connect integration to have profiles already attached
-      # to it in Codemagic's Team settings, which they aren't. Instead, the
-      # "Set up code signing" script step below uses fetch-signing-files
-      # (WITHOUT --create) to download the existing cert + profile that
-      # Build #10 already registered in Apple Developer Portal.
+      # Path B code signing: persistent Distribution cert is stored in the
+      # `ios_signing` env var group (IOS_DISTRIBUTION_CERTIFICATE and
+      # IOS_CERTIFICATE_PASSWORD, both Secure). The "Set up code signing"
+      # script below decodes the .p12 and adds it to the keychain instead
+      # of creating a new cert every build (which was causing 409 errors).
+      groups:
+        - ios_signing
       vars:
         APP_ID: com.monkyapp.meditation
         VITE_NATIVE_BUILD: "1"
@@ -78,35 +79,36 @@ workflows:
             rm -f ios/App/Podfile ios/App/Podfile.lock
             rm -rf ios/App/Pods ios/App/App.xcworkspace
           fi
-      - name: Set up code signing (creates cert + profile if missing)
+      - name: Set up code signing (reuses persistent cert from env)
         script: |
           set -e
           keychain initialize
 
-          # Build #10's orphaned Distribution certificate has been revoked
-          # in Apple Developer Portal (its private key was on an ephemeral
-          # build VM and is lost forever). With the slot freed, we can now
-          # create a fresh cert + profile from scratch this build.
-          #
-          # Generate a fresh RSA private key for the iOS distribution certificate.
-          PRIVATE_KEY_PATH="/tmp/ios_distribution_cert.key"
-          if [ ! -f "$PRIVATE_KEY_PATH" ]; then
-            echo "Generating private key for distribution certificate..."
-            ssh-keygen -t rsa -b 2048 -m PEM -f "$PRIVATE_KEY_PATH" -q -N ""
-          fi
-          ls -la "$PRIVATE_KEY_PATH"
+          # Path B: reuse a persistent Distribution cert that was created
+          # manually in Apple Developer Portal and exported as .p12 on the
+          # user's Mac. The base64-encoded .p12 is stored in the Codemagic
+          # env var IOS_DISTRIBUTION_CERTIFICATE (group: ios_signing), and
+          # its password in IOS_CERTIFICATE_PASSWORD. This eliminates the
+          # 409 "too many certificates" error because we never create a
+          # new cert — every build uses the same one.
+          echo "Decoding stored Distribution certificate from env var..."
+          echo "$IOS_DISTRIBUTION_CERTIFICATE" | base64 --decode > /tmp/distribution_cert.p12
+          ls -la /tmp/distribution_cert.p12
 
-          # fetch-signing-files with --create + --certificate-key will
-          # auto-create BOTH the distribution certificate AND the provisioning
-          # profile in one shot if either is missing.
-          echo "Fetching/creating cert + App Store profile for $APP_ID..."
+          # Add the persistent cert to the build keychain.
+          keychain add-certificates \
+            --certificate /tmp/distribution_cert.p12 \
+            --certificate-password "$IOS_CERTIFICATE_PASSWORD"
+
+          # Fetch (or create) the App Store provisioning profile for this
+          # bundle ID. The cert already exists in the keychain so this will
+          # match it to the profile without creating a new cert.
+          echo "Fetching App Store profile for $APP_ID..."
           app-store-connect fetch-signing-files "$APP_ID" \
             --type IOS_APP_STORE \
-            --certificate-key=@file:"$PRIVATE_KEY_PATH" \
             --create
 
-          # Add fetched certs + profiles to the keychain & Xcode.
-          keychain add-certificates
+          # Apply profiles to the Xcode project.
           xcode-project use-profiles
       - name: Increment build number
         script: |
