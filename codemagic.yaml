@@ -104,13 +104,41 @@ workflows:
           # Sanity check: confirm the cert+key pair is paired and ready.
           security find-identity -v -p codesigning
 
-          # Create (or fetch existing) App Store provisioning profile for
-          # com.monkyapp.meditation. The cert is already in the keychain so
-          # Apple links the profile to the same cert; no new cert is created.
-          echo "Fetching/creating App Store profile for $APP_ID..."
-          app-store-connect fetch-signing-files "$APP_ID" \
-            --type IOS_APP_STORE \
-            --create
+          # Find the SHA-1 fingerprint of the cert we just added to the keychain.
+          # We'll need this to match against the Apple-side cert.
+          CERT_SHA1=$(openssl pkcs12 -in /tmp/distribution_cert.p12 \
+            -passin pass:"$IOS_CERTIFICATE_PASSWORD" -nokeys -clcerts 2>/dev/null | \
+            openssl x509 -noout -fingerprint -sha1 2>/dev/null | \
+            cut -d= -f2 | tr -d ':')
+          echo "Local cert SHA-1: $CERT_SHA1"
+
+          # List existing Apple certificates to find the matching one.
+          echo "Listing Apple certificates:"
+          app-store-connect certificates list --type IOS_DISTRIBUTION || \
+          app-store-connect certificates list --type DISTRIBUTION
+
+          # Try to fetch existing profiles for this bundle ID. If none exist,
+          # create one matching our distribution cert.
+          echo "Fetching App Store profiles for $APP_ID..."
+          app-store-connect fetch-signing-files "$APP_ID" --type IOS_APP_STORE || {
+            echo "No matching profile found, creating one..."
+            # Get the certificate ID from Apple that matches our keychain cert
+            CERT_ID=$(app-store-connect certificates list --type DISTRIBUTION \
+              --json 2>/dev/null | python3 -c "import json,sys; certs=json.load(sys.stdin); print(certs[0]['id'])" 2>/dev/null) || \
+            CERT_ID=$(app-store-connect certificates list --type IOS_DISTRIBUTION \
+              --json 2>/dev/null | python3 -c "import json,sys; certs=json.load(sys.stdin); print(certs[0]['id'])" 2>/dev/null)
+            echo "Using Apple cert ID: $CERT_ID"
+            
+            app-store-connect profiles create \
+              --name "Monky App Store $(date +%s)" \
+              --type IOS_APP_STORE \
+              --bundle-id "$APP_ID" \
+              --certificate "$CERT_ID" \
+              --save
+            
+            # Now fetch the profile we just created
+            app-store-connect fetch-signing-files "$APP_ID" --type IOS_APP_STORE
+          }
 
           # Apply profiles to the Xcode project.
           xcode-project use-profiles
