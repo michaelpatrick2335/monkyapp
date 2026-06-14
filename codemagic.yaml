@@ -120,8 +120,14 @@ workflows:
             --project "$CM_BUILD_DIR/ios/App/App.xcodeproj" \
             --scheme App
     artifacts:
-      - ios/App/build/ios/ipa/*.ipa
+      # xcode-project build-ipa writes to $CM_BUILD_DIR/build/ios/ipa/App.ipa
+      # NOT to ios/App/build/. The Publishing step uses these globs to find
+      # the IPA to upload to App Store Connect — a wrong path means
+      # "Skip publishing to App Store Connect: no IPAs or PKGs found".
+      - build/ios/ipa/*.ipa
+      - build/ios/ipa/*.zip
       - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
     publishing:
       app_store_connect:
         auth: integration
