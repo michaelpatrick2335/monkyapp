@@ -6,13 +6,16 @@ workflows:
     integrations:
       app_store_connect: codemagic
     environment:
-      # Path B code signing: persistent Distribution cert is stored in the
-      # `ios_signing` env var group (IOS_DISTRIBUTION_CERTIFICATE and
-      # IOS_CERTIFICATE_PASSWORD, both Secure). The "Set up code signing"
-      # script below decodes the .p12 and adds it to the keychain instead
-      # of creating a new cert every build (which was causing 409 errors).
-      groups:
-        - ios_signing
+      # Code signing via Codemagic-managed certificate.
+      # The cert `monky_distribution` was generated in Codemagic's
+      # Code signing identities UI (personal account scope), which created
+      # a matching Apple Distribution cert in the Apple Developer Portal
+      # under team ZZCB23RNM5 (Michael Dore). Codemagic stores both the
+      # public cert AND the private key permanently, so every build
+      # reuses the same identity — no more 409 "too many certificates".
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.monkyapp.meditation
       vars:
         APP_ID: com.monkyapp.meditation
         VITE_NATIVE_BUILD: "1"
@@ -79,31 +82,17 @@ workflows:
             rm -f ios/App/Podfile ios/App/Podfile.lock
             rm -rf ios/App/Pods ios/App/App.xcworkspace
           fi
-      - name: Set up code signing (reuses persistent cert from env)
+      - name: Set up code signing (Codemagic-managed cert + auto-create profile)
         script: |
           set -e
-          keychain initialize
-
-          # Path B: reuse a persistent Distribution cert that was created
-          # manually in Apple Developer Portal and exported as .p12 on the
-          # user's Mac. The base64-encoded .p12 is stored in the Codemagic
-          # env var IOS_DISTRIBUTION_CERTIFICATE (group: ios_signing), and
-          # its password in IOS_CERTIFICATE_PASSWORD. This eliminates the
-          # 409 "too many certificates" error because we never create a
-          # new cert — every build uses the same one.
-          echo "Decoding stored Distribution certificate from env var..."
-          echo "$IOS_DISTRIBUTION_CERTIFICATE" | base64 --decode > /tmp/distribution_cert.p12
-          ls -la /tmp/distribution_cert.p12
-
-          # Add the persistent cert to the build keychain.
-          keychain add-certificates \
-            --certificate /tmp/distribution_cert.p12 \
-            --certificate-password "$IOS_CERTIFICATE_PASSWORD"
-
-          # Fetch (or create) the App Store provisioning profile for this
-          # bundle ID. The cert already exists in the keychain so this will
-          # match it to the profile without creating a new cert.
-          echo "Fetching App Store profile for $APP_ID..."
+          # The `ios_signing` block at the workflow level tells Codemagic to
+          # auto-fetch the `monky_distribution` certificate it has stored
+          # for this personal account and install it in the build keychain
+          # before this step runs. We just need to make sure a matching
+          # App Store provisioning profile exists in Apple Developer Portal
+          # (fetch-signing-files with --create handles that), and apply the
+          # profile to the Xcode project.
+          echo "Fetching/creating App Store profile for $APP_ID..."
           app-store-connect fetch-signing-files "$APP_ID" \
             --type IOS_APP_STORE \
             --create
