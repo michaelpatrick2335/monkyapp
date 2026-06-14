@@ -107,13 +107,11 @@ workflows:
           # The cert in Apple has type DISTRIBUTION (not IOS_DISTRIBUTION).
           # Get its ID so we can attach it to a new profile.
           echo "Looking up Apple cert ID..."
-          CERT_ID=$(app-store-connect certificates list --type DISTRIBUTION --json 2>/dev/null | \
-            python3 -c "import json,sys; certs=json.load(sys.stdin); print(certs[0]['id'])" 2>/dev/null)
+          CERT_ID=$(app-store-connect certificates list --type DISTRIBUTION --json 2>/dev/null | jq -r '.[0].id // empty')
           echo "Apple cert ID: $CERT_ID"
 
           # Look up the bundle ID resource ID in Apple (needed for profiles create).
-          BUNDLE_ID_RESOURCE=$(app-store-connect bundle-ids list --bundle-id-identifier "$APP_ID" --json 2>/dev/null | \
-            python3 -c "import json,sys; b=json.load(sys.stdin); print(b[0]['id'])" 2>/dev/null)
+          BUNDLE_ID_RESOURCE=$(app-store-connect bundle-ids list --bundle-id-identifier "$APP_ID" --json 2>/dev/null | jq -r '.[0].id // empty')
           echo "Apple bundle resource ID: $BUNDLE_ID_RESOURCE"
 
           # First check if a profile already exists on disk from a previous build.
@@ -123,23 +121,11 @@ workflows:
           echo "Existing profiles on disk: $EXISTING_PROFILES"
 
           if [ "$EXISTING_PROFILES" -eq 0 ]; then
-            # No profile yet. List Apple profiles for this bundle ID; if one
-            # exists, download it. Otherwise create a new one.
+            # No profile yet. List Apple profiles, look for an active IOS_APP_STORE
+            # profile bound to our bundle ID. If found, download it; else create.
             echo "Looking for existing App Store profile in Apple for bundle id $BUNDLE_ID_RESOURCE..."
             EXISTING_APPLE_PROFILE=$(app-store-connect profiles list --json 2>/dev/null | \
-              python3 -c "
-import json, sys
-profiles = json.load(sys.stdin)
-bundle_id = '$BUNDLE_ID_RESOURCE'
-for p in profiles:
-    attrs = p.get('attributes', {})
-    if attrs.get('profileType') != 'IOS_APP_STORE':
-        continue
-    rel = p.get('relationships', {}).get('bundleId', {}).get('data', {})
-    if rel.get('id') == bundle_id and attrs.get('profileState') == 'ACTIVE':
-        print(p['id'])
-        break
-" 2>/dev/null)
+              jq -r --arg bid "$BUNDLE_ID_RESOURCE" '[.[] | select(.attributes.profileType == "IOS_APP_STORE" and .attributes.profileState == "ACTIVE" and .relationships.bundleId.data.id == $bid)] | .[0].id // empty')
             echo "Found existing Apple profile id: ${EXISTING_APPLE_PROFILE:-none}"
 
             if [ -z "$EXISTING_APPLE_PROFILE" ]; then
