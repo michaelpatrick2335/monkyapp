@@ -8,7 +8,7 @@ import {
   restorePurchases,
   type MonthlyOffering,
 } from "@/lib/iap";
-import monkyMonkeyOnly from "@/assets/monkey_new.jpeg";
+import monkeyCircle from "@/assets/monkey_circle.jpeg";
 
 interface PaywallProps {
   onUnlock: () => void;
@@ -99,7 +99,7 @@ export function Paywall({ onUnlock, userName }: PaywallProps) {
   const ctaLabel = IS_IOS
     ? (iapBusy
         ? "Connecting to App Store..."
-        : `Start ${trialDays ?? 3}-day free trial`)
+        : "Enter Temple")
     : (unlockMutation.isPending ? "Unlocking..." : `Unlock for ${displayPrice} 🙏`);
 
   const handleCTA = () => {
@@ -114,14 +114,14 @@ export function Paywall({ onUnlock, userName }: PaywallProps) {
     <div className="min-h-screen flex flex-col items-center justify-start px-5 py-8 stars-bg overflow-y-auto">
       {/* Header */}
       <div className="flex flex-col items-center text-center mb-6">
-        <div style={{ width: 80, height: 80, borderRadius: '50%', overflow: 'hidden', background: '#1a3d2b', marginBottom: 16, border: '2px solid rgba(245,200,66,0.3)', boxShadow: '0 0 24px rgba(245,200,66,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src={monkyMonkeyOnly} alt="Monky" style={{ width: '90%', height: '90%', objectFit: 'contain' }} />
+        <div style={{ width: 110, height: 110, borderRadius: '50%', overflow: 'hidden', marginBottom: 18, border: '2px solid rgba(245,200,66,0.4)', boxShadow: '0 0 24px rgba(245,200,66,0.25)' }}>
+          <img src={monkeyCircle} alt="Monky" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
-        <h1 className="font-display text-gold font-bold" style={{ fontSize: "1.7rem" }}>
-          Your 3 free sessions are up
+        <h1 className="font-display text-gold font-bold" style={{ fontSize: "1.6rem", lineHeight: 1.15 }}>
+          Journey to inner peace starts now
         </h1>
-        <p className="text-muted-foreground text-sm mt-1.5 max-w-xs">
-          Unlock the full MONKy journey — unlimited meditations, all ranks, and your growing monk companion.
+        <p className="text-muted-foreground text-sm mt-2 max-w-xs">
+          Meditation is about being aware of your MONKEY MIND, learning to be in it.
         </p>
       </div>
 
@@ -132,17 +132,24 @@ export function Paywall({ onUnlock, userName }: PaywallProps) {
       >
         {/* Price label */}
         <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="font-display font-bold text-foreground text-lg">MONKy Full Access</p>
-            <p className="text-muted-foreground text-xs">
-              {IS_IOS && trialDays
-                ? `${trialDays}-day free trial · Cancel anytime`
-                : "Monthly subscription · Cancel anytime"}
-            </p>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <p className="font-display font-bold text-foreground text-lg">Monky Full Access</p>
+            <p className="text-muted-foreground text-xs">Cancel anytime</p>
           </div>
-          <div className="text-right">
-            <p className="font-display font-bold text-gold text-2xl">{displayPrice}</p>
-            <p className="text-muted-foreground text-xs">/month</p>
+          <div className="text-right" style={{ flexShrink: 0 }}>
+            {IS_IOS && trialDays ? (
+              <>
+                <p className="font-display font-bold text-gold text-2xl" style={{ lineHeight: 1 }}>FREE</p>
+                <p className="text-muted-foreground text-xs mt-1" style={{ maxWidth: 130, lineHeight: 1.3 }}>
+                  {displayPrice}/month after {trialDays} days
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-display font-bold text-gold text-2xl">{displayPrice}</p>
+                <p className="text-muted-foreground text-xs">/month</p>
+              </>
+            )}
           </div>
         </div>
 
@@ -161,15 +168,25 @@ export function Paywall({ onUnlock, userName }: PaywallProps) {
         </div>
       </div>
 
-      {/* CTA */}
+      {/* CTA — with gentle pulse/glow */}
+      <style>{`
+        @keyframes monky-cta-pulse {
+          0%, 100% { transform: scale(1); box-shadow: 0 8px 28px rgba(245,200,66,0.25), 0 0 0 0 rgba(245,200,66,0); }
+          50%      { transform: scale(1.025); box-shadow: 0 10px 36px rgba(245,200,66,0.45), 0 0 36px 8px rgba(245,200,66,0.35); }
+        }
+        .monky-cta { animation: monky-cta-pulse 2.6s ease-in-out infinite; will-change: transform, box-shadow; }
+        .monky-cta:disabled { animation: none; }
+        @media (prefers-reduced-motion: reduce) {
+          .monky-cta { animation: none; box-shadow: 0 8px 32px rgba(245,200,66,0.3); }
+        }
+      `}</style>
       <button
         onClick={handleCTA}
         disabled={iapBusy || unlockMutation.isPending}
-        className="w-full max-w-sm py-5 rounded-3xl font-display font-bold text-lg transition-all active:scale-95 hover:scale-[1.02] disabled:opacity-50"
+        className="monky-cta w-full max-w-sm py-5 rounded-3xl font-display font-bold text-lg transition-all active:scale-95 disabled:opacity-50"
         style={{
           background: "linear-gradient(135deg, var(--color-saffron), var(--color-gold))",
           color: "#1a0a00",
-          boxShadow: "0 8px 32px rgba(245,200,66,0.3)",
         }}
         data-testid="button-unlock"
       >
@@ -203,17 +220,33 @@ export function Paywall({ onUnlock, userName }: PaywallProps) {
         )}
       </p>
 
-      {/* Restore — only meaningful on iOS */}
-      {IS_IOS && (
+      {/* Bottom links — Restore purchase + Log In */}
+      <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
+        {IS_IOS && (
+          <>
+            <button
+              onClick={handleRestore}
+              disabled={iapBusy}
+              className="underline underline-offset-4 opacity-70 hover:opacity-100 transition-opacity disabled:opacity-30"
+              data-testid="button-restore"
+            >
+              Restore purchase
+            </button>
+            <span className="opacity-40">·</span>
+          </>
+        )}
         <button
-          onClick={handleRestore}
-          disabled={iapBusy}
-          className="mt-4 text-xs text-muted-foreground underline underline-offset-4 opacity-60 hover:opacity-100 transition-opacity disabled:opacity-30"
-          data-testid="button-restore"
+          onClick={async () => {
+            try { await apiRequest("POST", "/api/logout", {}); } catch {}
+            queryClient.clear();
+            window.location.reload();
+          }}
+          className="underline underline-offset-4 opacity-70 hover:opacity-100 transition-opacity"
+          data-testid="button-paywall-login"
         >
-          Restore purchase
+          Log In
         </button>
-      )}
+      </div>
 
       {/* Required legal links on the iOS paywall (Apple Guideline 3.1.2 / 5.1.1) */}
       {IS_IOS && (
