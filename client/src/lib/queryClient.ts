@@ -4,7 +4,7 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 // In the native iOS/Android build (served from capacitor://localhost), Vite injects VITE_API_BASE_URL
 // at build time so all /api/* calls hit the live monkyapp.com server.
 const BUILD_API_BASE = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
-const API_BASE = BUILD_API_BASE && BUILD_API_BASE.length > 0
+export const API_BASE = BUILD_API_BASE && BUILD_API_BASE.length > 0
   ? BUILD_API_BASE.replace(/\/$/, "")
   : ("__PORT_5000__".startsWith("__") ? "" : "__PORT_5000__");
 

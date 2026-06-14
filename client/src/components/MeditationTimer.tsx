@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { formatDuration } from "@/lib/monky-game";
 import { BUILTIN_TRACKS } from "@/lib/meditation-tracks";
-
-const API_BASE = ("__PORT_5000__" as string).startsWith("__") ? "" : "__PORT_5000__";
+import { API_BASE } from "@/lib/queryClient";
 
 interface MeditationTimerProps {
   durationSeconds: number;

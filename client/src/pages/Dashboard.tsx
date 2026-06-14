@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, API_BASE } from "@/lib/queryClient";
 import { MeditationTimer } from "@/components/MeditationTimer";
 import { MeditationJournal } from "@/components/MeditationJournal";
 import { BreathChallengeScreen } from "@/components/BreathChallenge";
@@ -128,8 +128,6 @@ export function Dashboard({ onLogout }: DashboardProps) {
     return (<MonkyLoader />
     );
   }
-
-  const API_BASE = ("__PORT_5000__" as string).startsWith("__") ? "" : "__PORT_5000__";
 
   // Music helpers for stats panel
   function toggleMusicPreview(trackId: string) {
@@ -375,7 +373,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
         <div className="mb-3 breathe" style={{ filter: 'drop-shadow(0 0 24px rgba(245,200,66,0.5))' }}>
           <div style={{ width: 120, height: 120, borderRadius: '50%', overflow: 'hidden', background: '#0d1520', boxShadow: '0 0 0 3px rgba(245,200,66,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <img
-              src={user.profilePic ? `${("__PORT_5000__" as string).startsWith("__") ? "" : "__PORT_5000__"}/api/profile-pic/file?t=${Date.now()}` : monkyMonkeyOnly}
+              src={user.profilePic ? `${API_BASE}/api/profile-pic/file?t=${Date.now()}` : monkyMonkeyOnly}
               alt="Monky"
               style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: user.profilePic ? 'center' : 'center 20%' }}
               data-testid="img-monkey"

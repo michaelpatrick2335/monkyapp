@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, API_BASE } from "@/lib/queryClient";
 import monkyMonkeyOnly from "@/assets/monkey_circle.jpeg";
 import paymentBg from "@/assets/payment_bg.jpeg";
-
-const API_BASE = ("__PORT_5000__" as string).startsWith("__") ? "" : "__PORT_5000__";
 
 const stripePromise = loadStripe("pk_live_51ThZa31zeUc213dYMlMpzP0u7dbu73zjJcr4hXQhBNZb0jW0VDUQNpHidSQmnrSZg1SxWAEYmW1ZLTPnEvCNqWSj00vemq95c5");
 

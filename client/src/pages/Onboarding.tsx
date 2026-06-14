@@ -1,12 +1,10 @@
 import { useState } from "react";
-import { queryClient, setUserEmail } from "@/lib/queryClient";
+import { queryClient, setUserEmail, API_BASE } from "@/lib/queryClient";
 import monkyMonkeyOnly from "@/assets/monkey_circle.jpeg";
 import loginScene from "@/assets/login_scene.jpeg";
 import { Browser } from "@capacitor/browser";
 import { Capacitor } from "@capacitor/core";
 import { identifyUser } from "@/lib/iap";
-
-const API_BASE = ("__PORT_5000__" as string).startsWith("__") ? "" : "__PORT_5000__";
 
 // ── Speech bubble ─────────────────────────────────────────────
 function SpeechBubble({ children }: { children: React.ReactNode }) {

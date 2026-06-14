@@ -1,10 +1,7 @@
 import { useState, useRef } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, API_BASE } from "@/lib/queryClient";
 import monkyCircle from "@/assets/monkey_circle.jpeg";
-
-// Resolve API base the same way queryClient does (handles deployed port proxy)
-const API_BASE = ("__PORT_5000__" as string).startsWith("__") ? "" : "__PORT_5000__";
 import { VOICE_CUES, type VoiceCueId } from "@/components/BreathChallenge";
 import { CustomBreathBuilder, CustomBreathList } from "@/components/CustomBreathBuilder";
 import type { User } from "@shared/schema";
@@ -61,7 +58,7 @@ export function Settings({ user, onBack, onLogout }: SettingsProps) {
   const [profilePicUploading, setProfilePicUploading] = useState(false);
   const [profilePicError, setProfilePicError] = useState<string | null>(null);
   const [profilePicPreview, setProfilePicPreview] = useState<string | null>(
-    user.profilePic ? `${("__PORT_5000__" as string).startsWith("__") ? "" : "__PORT_5000__"}/api/profile-pic/file?t=${Date.now()}` : null
+    user.profilePic ? `${API_BASE}/api/profile-pic/file?t=${Date.now()}` : null
   );
   const profilePicInputRef = useRef<HTMLInputElement | null>(null);
 
