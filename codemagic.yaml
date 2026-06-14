@@ -116,20 +116,49 @@ workflows:
             python3 -c "import json,sys; b=json.load(sys.stdin); print(b[0]['id'])" 2>/dev/null)
           echo "Apple bundle resource ID: $BUNDLE_ID_RESOURCE"
 
-          # Try fetching an existing profile for this bundle ID first.
-          echo "Fetching existing App Store profiles for $APP_ID..."
-          if ! app-store-connect fetch-signing-files "$APP_ID" --type IOS_APP_STORE; then
-            echo "No matching profile found. Creating a new App Store profile..."
-            app-store-connect profiles create \
-              --name "Monky App Store $(date +%s)" \
-              --type IOS_APP_STORE \
-              --certificate-ids "$CERT_ID" \
-              --save \
-              "$BUNDLE_ID_RESOURCE"
+          # First check if a profile already exists on disk from a previous build.
+          PROFILE_DIR="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+          mkdir -p "$PROFILE_DIR"
+          EXISTING_PROFILES=$(ls "$PROFILE_DIR"/IOS_APP_STORE_*.mobileprovision 2>/dev/null | wc -l)
+          echo "Existing profiles on disk: $EXISTING_PROFILES"
 
-            echo "Re-fetching signing files now that a profile exists..."
-            app-store-connect fetch-signing-files "$APP_ID" --type IOS_APP_STORE
+          if [ "$EXISTING_PROFILES" -eq 0 ]; then
+            # No profile yet. List Apple profiles for this bundle ID; if one
+            # exists, download it. Otherwise create a new one.
+            echo "Looking for existing App Store profile in Apple for bundle id $BUNDLE_ID_RESOURCE..."
+            EXISTING_APPLE_PROFILE=$(app-store-connect profiles list --json 2>/dev/null | \
+              python3 -c "
+import json, sys
+profiles = json.load(sys.stdin)
+bundle_id = '$BUNDLE_ID_RESOURCE'
+for p in profiles:
+    attrs = p.get('attributes', {})
+    if attrs.get('profileType') != 'IOS_APP_STORE':
+        continue
+    rel = p.get('relationships', {}).get('bundleId', {}).get('data', {})
+    if rel.get('id') == bundle_id and attrs.get('profileState') == 'ACTIVE':
+        print(p['id'])
+        break
+" 2>/dev/null)
+            echo "Found existing Apple profile id: ${EXISTING_APPLE_PROFILE:-none}"
+
+            if [ -z "$EXISTING_APPLE_PROFILE" ]; then
+              echo "No existing profile in Apple. Creating a new one..."
+              app-store-connect profiles create \
+                --name "Monky App Store $(date +%s)" \
+                --type IOS_APP_STORE \
+                --certificate-ids "$CERT_ID" \
+                --save \
+                "$BUNDLE_ID_RESOURCE"
+            else
+              echo "Downloading existing Apple profile $EXISTING_APPLE_PROFILE..."
+              app-store-connect profiles get "$EXISTING_APPLE_PROFILE" --save
+            fi
           fi
+
+          # List what's on disk
+          echo "Provisioning profiles on disk:"
+          ls -la "$PROFILE_DIR" || true
 
           # Apply profiles to the Xcode project.
           xcode-project use-profiles
