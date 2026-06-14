@@ -96,18 +96,28 @@ export async function registerRoutes(httpServer: Server, app: Express) {
   });
 
   // Login by email: POST /api/login  { email }
-  // Returns user if found, 404 if not
+  // For test accounts (App Store reviewer), auto-creates with premium
+  // on first sign-in so the reviewer never hits a 404. For all other
+  // emails, returns 404 if the account doesn't exist.
   app.post("/api/login", (req, res) => {
     try {
       const email = (req.body.email as string || "").trim().toLowerCase();
       if (!email) return res.status(400).json({ error: "Email required" });
-      const found = storage.getUserByEmail(email);
+
+      let found = storage.getUserByEmail(email);
+
+      // App Store reviewer auto-provision: the reviewer must be able to
+      // sign in with appreview@monkyapp.com without first creating an
+      // account through the web flow. Create the test account on demand.
+      if (!found && TEST_ACCOUNTS.includes(email)) {
+        storage.getOrCreateUser(email);
+        found = storage.getUserByEmail(email);
+      }
+
       if (!found) return res.status(404).json({ error: "No account found with that email" });
       // Restore this user as the active user (single-user app — just update the record id=1)
-      // Copy all fields of found onto user id=1 so the app session resumes
       const restored = storage.restoreUser(found);
-      // Test account — always premium
-      const TEST_ACCOUNTS = ["mdore06@gmail.com", "michaelpatrick2335@gmail.com", "appreview@monkyapp.com"];
+      // Test accounts are always premium
       if (TEST_ACCOUNTS.includes(email)) {
         const unlocked = storage.updateUser(restored.id, { isPremium: true });
         return res.json(unlocked);
